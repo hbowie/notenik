@@ -1,4 +1,10 @@
 *.class
+/build.xml
+/build/
+/dist/
+/manifest.mf
+/nbproject/
+.DS_Store
 
 # Package Files #
 *.jar
