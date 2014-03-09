@@ -130,6 +130,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
   private             File                currentDirectory;
   private             NoteReader          reader;
   private             NoteWriter          writer;
+  private             NoteExport          exporter;
 
   public  static final String             FIND = "Find";
   public  static final String             FIND_AGAIN = "Again";
@@ -208,7 +209,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
     tweakerPrefs = new TweakerPrefs();
     prefsWindow.getPrefsTabs().add(TweakerPrefs.PREFS_TAB_NAME, tweakerPrefs);
     
-    // io = new URLInputOutput(this);
+    exporter = new NoteExport(this);
     
     recentFiles = new RecentFiles();
     
@@ -295,7 +296,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
         
 
     publishWindow = new PublishWindow(this);
-    publishWindow.setOnSaveOption(true);
+    publishWindow.setOnSaveOption(false);
     publishWindow.setStatusBar(statusBar);
 
     collectionWindow = new CollectionWindow();
@@ -1414,12 +1415,16 @@ public class NotenikMainFrame extends javax.swing.JFrame
   private void setNoteFile (File file) {
     if (file == null) {
       noteFile = null;
+      reader = null;
+      writer = null;
+      exporter = null;
       currentFileSpec = null;
       statusBar.setFileName("            ", " ");
     } else {
       noteFile = file;
       reader = new NoteReader(noteFile);
       writer = new NoteWriter(noteFile);
+      exporter = new NoteExport(this);
       if (noteList != null) {
         noteList.setSource (file);
       }
@@ -1504,44 +1509,11 @@ public class NotenikMainFrame extends javax.swing.JFrame
 
   }
 
-  /**
-   Publish Notes in a variety of useful formats.
-   */
-  private void publishFile () {
-    // reloadFile();
-    if (currentDirectory != null
-        && currentDirectory.exists()
-        && currentDirectory.isDirectory()) {
-
-      // Copy Support folder if it doesn't already exist
-      File supportFolder = new File (currentDirectory, SUPPORT_FOLDER_NAME);
-      File appSubFolder = new File (appFolder, SUPPORT_FOLDER_NAME);
-      if (appFolder.exists() && (! supportFolder.exists())) {
-        System.out.println ("initFolder");
-        System.out.println ("  from " + appSubFolder.toString());
-        System.out.println ("  to   " + supportFolder.toString());
-        FileUtils.copyFolder (appSubFolder, supportFolder);
-      }
-
-      // Publish selected favorites
-      publishFavorites(currentDirectory);
-
-      // Publish in Netscape bookmarks format
-      publishNetscape(currentDirectory);
-
-      // Publish in outline form using dynamic html
-      publishOutline(currentDirectory);
-
-      // Publish index file pointing to other files
-      publishIndex(currentDirectory);
-    }
-  }
-
   private boolean publishURLUnion (File publishTo) {
     urlUnionWritten = false;
     File urlUnionFile = new File (publishTo, URLUNION_FILE_NAME);
     if (! urlUnionFile.toString().equals(noteFile.toString())) {
-      // io.save (urlUnionFile, noteList);
+      exporter.exportToURLUnion (urlUnionFile, noteList);
       urlUnionWritten = true;
     }
     return urlUnionWritten;
@@ -1552,8 +1524,8 @@ public class NotenikMainFrame extends javax.swing.JFrame
     // Publish selected favorites
     favoritesWritten = false;
     if (! noteFile.getName().equalsIgnoreCase (FAVORITES_FILE_NAME)) {
-      // favoritesWritten = io.publishFavorites
-      //     (publishTo, noteList, prefsWindow.getFavoritesPrefs());
+      favoritesWritten = exporter.publishFavorites
+          (publishTo, noteList, prefsWindow.getFavoritesPrefs());
     }
     return favoritesWritten;
   }
@@ -1564,7 +1536,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
     if (! noteFile.getName().equalsIgnoreCase (NETSCAPE_BOOKMARKS_FILE_NAME)) {
       File netscapeFile = new File (publishTo,
         NETSCAPE_BOOKMARKS_FILE_NAME);
-      // io.publishNetscape (netscapeFile, noteList);
+      exporter.publishNetscape (netscapeFile, noteList);
       netscapeWritten = true;
     }
     return netscapeWritten;
@@ -1575,7 +1547,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
     outlineWritten = false;
     if (! noteFile.getName().equalsIgnoreCase (OUTLINE_FILE_NAME)) {
       File dynamicHTMLFile = new File (publishTo, OUTLINE_FILE_NAME);
-      // io.publishOutline(dynamicHTMLFile, noteList);
+      exporter.publishOutline(dynamicHTMLFile, noteList);
       outlineWritten = true;
     }
     return outlineWritten;
@@ -1586,10 +1558,10 @@ public class NotenikMainFrame extends javax.swing.JFrame
     indexWritten = false;
     if (! noteFile.getName().equalsIgnoreCase (INDEX_FILE_NAME)) {
       File indexFile = new File (publishTo, INDEX_FILE_NAME);
-      // io.publishIndex(indexFile, noteFile,
-      //    favoritesWritten, FAVORITES_FILE_NAME,
-      //    netscapeWritten, NETSCAPE_BOOKMARKS_FILE_NAME,
-      //    outlineWritten, OUTLINE_FILE_NAME);
+      exporter.publishIndex(indexFile, noteFile,
+         favoritesWritten, FAVORITES_FILE_NAME,
+         netscapeWritten, NETSCAPE_BOOKMARKS_FILE_NAME,
+         outlineWritten, OUTLINE_FILE_NAME);
       indexWritten = true;
     }
     return indexWritten;
@@ -1660,7 +1632,8 @@ public class NotenikMainFrame extends javax.swing.JFrame
    @return 
   */
   public boolean backup(File backupFile) {
-    boolean backedUp = false; // io.save (backupFile, noteList);
+    boolean backedUp = false; 
+    backedUp = exporter.exportToURLUnion (backupFile, noteList);
     if (backedUp) {
       logger.recordEvent (LogEvent.NORMAL,
           "Notes backed up to " + backupFile.toString(),
