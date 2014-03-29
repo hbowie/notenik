@@ -19,8 +19,10 @@ package com.powersurgepub.notenik;
   import com.powersurgepub.linktweaker.*;
   import com.powersurgepub.psfiles.*;
   import com.powersurgepub.psdatalib.ui.*;
+  import com.powersurgepub.psdatalib.psdata.*;
   import com.powersurgepub.psdatalib.pstags.*;
   import com.powersurgepub.psdatalib.notenik.*;
+  import com.powersurgepub.psdatalib.pslist.*;
   import com.powersurgepub.pspub.*;
   import com.powersurgepub.psutils.*;
   import com.powersurgepub.urlvalidator.*;
@@ -40,7 +42,9 @@ package com.powersurgepub.notenik;
 
   @author Herb Bowie
  */
-public class NotenikMainFrame extends javax.swing.JFrame
+public class NotenikMainFrame 
+    extends 
+      JFrame
     implements 
       ActionListener,
       AppToBackup,
@@ -52,7 +56,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "0.90a";
+  public static final String PROGRAM_VERSION = "0.01";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -63,7 +67,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
 
   public static final String INVALID_URL_TAG = "Invalid URL";
 
-  public static final String URLUNION_FILE_NAME            = "urlunion.html";
+  public static final String URLUNION_FILE_NAME           = "urlunion.html";
   public static final String INDEX_FILE_NAME              = "index.html";
   public static final String FAVORITES_FILE_NAME          = "favorites.html";
   public static final String NETSCAPE_BOOKMARKS_FILE_NAME = "bookmark.html";
@@ -128,8 +132,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
   private             FileSpec            currentFileSpec = null;
   private             File                noteFile = null;
   private             File                currentDirectory;
-  private             NoteReader          reader;
-  private             NoteWriter          writer;
+  private             NoteIO              noteIO = null;
   private             NoteExport          exporter;
 
   public  static final String             FIND = "Find";
@@ -137,7 +140,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
 
   private             String              lastTextFound = "";
   
-  private             Note             foundNote = null;
+  private             Note                foundNote = null;
   
   private             StringBuilder       titleBuilder = new StringBuilder();
   private             int                 titleStart = -1;
@@ -411,7 +414,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
   
   private void saveNote(Note note) {
     try {
-      writer.save(note, true);
+      noteIO.save(note, true);
     } catch (IOException e) {
       ioException(e);
     }
@@ -434,7 +437,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
         position.setNavigatorToList
             (collectionTabbedPane.getSelectedIndex() == 0);
         position = noteList.remove (position);
-        boolean deleted = writer.delete(position.getNote());
+        boolean deleted = noteIO.delete(position.getNote());
         if (! deleted) {
           trouble.report(
               "Unable to delete file " + position.getNote().getFileName(), 
@@ -509,7 +512,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
     noFindInProgress();
   }
 
-/*  public int checkTags (String find, String replace) {
+public int checkTags (String find, String replace) {
     int mods = 0;
     Note next;
     Tags tags;
@@ -536,11 +539,12 @@ public class NotenikMainFrame extends javax.swing.JFrame
       } // end if we the find category is not blank
       if (modified) {
         mods++;
-        setUnsavedChanges (true);
+        saveNote(next);
+        // setUnsavedChanges (true);
       } // end if modified
     } // end of  items
     return mods;
-  } */
+  } 
   
   /**
    If requested, launch any Note's link that has been tagged with "startup"
@@ -1232,7 +1236,11 @@ public class NotenikMainFrame extends javax.swing.JFrame
     closeFile();
     initCollection();
     setNoteFile (fileToOpen);
-    readFileContents(noteFile);
+    try {
+      noteIO.load(noteList);
+    } catch (IOException e) {
+      ioException(e);
+    }
     collectionWindow.setList (noteList);
     noteList.fireTableDataChanged();
     position = new NotePositioned ();
@@ -1285,7 +1293,12 @@ public class NotenikMainFrame extends javax.swing.JFrame
     if (selectedFile != null) {
       File importFile = selectedFile;
       currentDirectory = importFile;
-      readFileContents(importFile);
+      NoteIO importer = new NoteIO (importFile);
+      try {
+        importer.load(noteList);
+      } catch (IOException e) {
+        ioException(e);
+      }
       collectionWindow.setList (noteList);
       // setUnsavedChanges(true);
     }
@@ -1301,7 +1314,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
         && selectedFile.isDirectory()
         && selectedFile.canWrite()) {
       File exportFolder = selectedFile;
-      NoteWriter exportWriter = new NoteWriter(exportFolder);
+      NoteIO exportWriter = new NoteIO(exportFolder);
       Note workNote;
       try {
         for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
@@ -1329,15 +1342,6 @@ public class NotenikMainFrame extends javax.swing.JFrame
       }
     } // end if user selected a valid folder
   } // end method export to NoteNik
-
-  private void readFileContents (File inFile) {
-    NoteReader workReader = new NoteReader (inFile);
-    try {
-      workReader.load(noteList);
-    } catch (IOException e) {
-      ioException(e);
-    }
-  }
   
   private void ioException(IOException e) {
     Trouble.getShared().report("I/O Exception", "Trouble");
@@ -1347,6 +1351,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
     if (this.noteFile != null) {
       modIfChanged();
       // checkForUnsavedChanges();
+      collectionWindow.close(noteIO);
       publishWindow.closeSource();
       filePrefs.handleClose();
     }
@@ -1359,7 +1364,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
       saveFileAs();
     } else {
       try {
-        writer.save (noteList);
+        noteIO.save (noteList);
       } catch (IOException e) {
         ioException (e);
       }
@@ -1396,7 +1401,7 @@ public class NotenikMainFrame extends javax.swing.JFrame
     savePreferredCollectionView();
     setNoteFile (asFile);
     try {
-      writer.save (noteList);
+      noteIO.save (noteList);
     } catch (IOException e) {
       ioException(e);
     }
@@ -1413,17 +1418,16 @@ public class NotenikMainFrame extends javax.swing.JFrame
 
    */
   private void setNoteFile (File file) {
+    collectionWindow.setSource(file);
     if (file == null) {
       noteFile = null;
-      reader = null;
-      writer = null;
+      noteIO = null;
       exporter = null;
       currentFileSpec = null;
       statusBar.setFileName("            ", " ");
     } else {
       noteFile = file;
-      reader = new NoteReader(noteFile);
-      writer = new NoteWriter(noteFile);
+      noteIO = new NoteIO(noteFile);
       exporter = new NoteExport(this);
       if (noteList != null) {
         noteList.setSource (file);
