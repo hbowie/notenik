@@ -1186,7 +1186,7 @@ public int checkTags (String find, String replace) {
     if (option == JOptionPane.YES_OPTION) {
       noFindInProgress();
       initCollection();
-      collectionWindow.setList (noteList);
+      // collectionWindow.setList (noteList);
       noteList.fireTableDataChanged();
       setPreferredCollectionView();
       addFirstNote();
@@ -1196,7 +1196,8 @@ public int checkTags (String find, String replace) {
   public void newFile() {
     closeFile();
     initCollection();
-    collectionWindow.setList (noteList);
+    // collectionWindow.setList (noteList);
+    collectionWindow.newNoteFolder(noteList, null);
     noteList.fireTableDataChanged();
     setNoteFile (null);
     setPreferredCollectionView();
@@ -1241,7 +1242,7 @@ public int checkTags (String find, String replace) {
     } catch (IOException e) {
       ioException(e);
     }
-    collectionWindow.setList (noteList);
+    collectionWindow.newNoteFolder(noteList, noteIO);
     noteList.fireTableDataChanged();
     position = new NotePositioned ();
     setPreferredCollectionView();
@@ -1299,7 +1300,7 @@ public int checkTags (String find, String replace) {
       } catch (IOException e) {
         ioException(e);
       }
-      collectionWindow.setList (noteList);
+      // collectionWindow.setList (noteList);
       // setUnsavedChanges(true);
     }
     noteList.fireTableDataChanged();
@@ -1405,7 +1406,7 @@ public int checkTags (String find, String replace) {
     } catch (IOException e) {
       ioException(e);
     }
-    collectionWindow.setList (noteList);
+    collectionWindow.newNoteFolder(noteList, noteIO);
     publishWindow.saveSource();
   }
 
@@ -1418,7 +1419,6 @@ public int checkTags (String find, String replace) {
 
    */
   private void setNoteFile (File file) {
-    collectionWindow.setSource(file);
     if (file == null) {
       noteFile = null;
       noteIO = null;

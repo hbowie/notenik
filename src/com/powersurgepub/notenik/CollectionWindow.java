@@ -45,6 +45,8 @@ public class CollectionWindow
   
   private NoteList noteList;
   
+  private NoteIO io = null;
+  
   private File source = null;
   
   private Note parmsNote = new Note(PARMS_TITLE);
@@ -56,25 +58,30 @@ public class CollectionWindow
     
     // this.setBounds (100, 100, 600, 540);
   }
-
-  public void setList (NoteList noteList) {
-    this.noteList = noteList;
-    fileNameText.setText(noteList.getSource().getAbsolutePath());
-    titleText.setText (noteList.getSource().getName());
-    if (noteList.getSource() != null) {
-      setSource (noteList.getSource());
-    }
-  }
   
-  public void setSource (File source) {
-
-    this.source = source;
-    
+  public void newNoteFolder (NoteList noteList, NoteIO io) {
+    this.noteList = noteList;
+    this.io = io;
+    this.source = noteList.getSource();
+    parmsNote = new Note(PARMS_TITLE);
     if (source == null) {
       secondaryLocationPrefixText.setText("");
       fileNameText.setText("");
     } else {
       fileNameText.setText(source.getAbsolutePath());
+      fileNameText.setText(noteList.getSource().getAbsolutePath());
+      titleText.setText (noteList.getSource().getName());
+      if (io.exists(parmsNote)) {
+        try {
+          parmsNote = io.getNote(parmsNote.getFileName());
+          secondaryLocationText.setText
+              (parmsNote.getField(SECONDARY_LOCATION).getData());
+          this.secondaryLocationPrefixText.setText
+              (parmsNote.getField(SECONDARY_PREFIX).getData());
+        } catch (IOException e) {
+          System.out.println("I/O Exception attempting to retrieve " + PARMS_TITLE);
+        }
+      }
       if (secondaryLocationPrefixText.getText().length() == 0) {
         StringBuilder prefix = new StringBuilder(source.getName());
         if (prefix.charAt(prefix.length() - 1) == 's') {
@@ -84,7 +91,6 @@ public class CollectionWindow
         secondaryLocationPrefixText.setText(prefix.toString());
       }
     }
-    
   }
   
   private void setSecondaryLocation(String secondaryLocationText) {
@@ -111,6 +117,11 @@ public class CollectionWindow
     saveParms(noteIO);
   }
   
+  /**
+   Save all the parameters modified by this program. 
+  
+   @param noteIO The I/O module to use. 
+  */
   public void saveParms (NoteIO noteIO) {
     parmsNote = new Note(PARMS_TITLE);
     parmsNote.addField
