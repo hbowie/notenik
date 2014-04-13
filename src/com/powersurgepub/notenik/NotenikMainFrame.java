@@ -134,6 +134,8 @@ public class NotenikMainFrame
   private             File                currentDirectory;
   private             NoteIO              noteIO = null;
   private             NoteExport          exporter;
+  
+  private             String              fileName = "";
 
   public  static final String             FIND = "Find";
   public  static final String             FIND_AGAIN = "Again";
@@ -184,7 +186,7 @@ public class NotenikMainFrame
     home = Home.getShared ();
     programVersion = ProgramVersion.getShared ();
     initComponents();
-    linkLabel = new LinkLabel("URL:");
+    linkLabel = new LinkLabel("Link:");
     linkLabel.setLinkTextArea(linkText);
     linkLabel.setFrame(this);
     
@@ -250,12 +252,12 @@ public class NotenikMainFrame
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 3;
     gridBagConstraints.gridwidth = 2;
-    gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+    gridBagConstraints.fill = java.awt.GridBagConstraints.NONE;
     gridBagConstraints.ipadx = 2;
     gridBagConstraints.ipady = 2;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-    gridBagConstraints.weightx = 0.1;
-    gridBagConstraints.weighty = 0.1;
+    gridBagConstraints.weightx = 0.0;
+    gridBagConstraints.weighty = 0.0;
     gridBagConstraints.insets = new java.awt.Insets(8, 8, 8, 8);
     linkPanel.add(linkLabel, gridBagConstraints);
 
@@ -373,9 +375,9 @@ public class NotenikMainFrame
   }
 
   /**
-   Prepare the data entry screen for a new URL.
+   Prepare the data entry screen for a new Note.
    */
-  public void newURL() {
+  public void newNote() {
 
     // Capture current category selection, if any
     String selectedTags = "";
@@ -383,13 +385,16 @@ public class NotenikMainFrame
     if (tags != null) {
       selectedTags = tags.getTagsAsString();
     }
+    
+    boolean modOK = modIfChanged();
 
-    modIfChanged();
-
-    position = new NotePositioned();
-    position.setIndex (noteList.size());
-    displayNote();
-    tagsTextSelector.setText (selectedTags);
+    if (modOK) {
+      position = new NotePositioned();
+      position.setIndex (noteList.size());
+      fileName = "";
+      displayNote();
+      tagsTextSelector.setText (selectedTags);
+    }
   }
 
   /**
@@ -419,6 +424,26 @@ public class NotenikMainFrame
       ioException(e);
     }
   }
+  
+  /**
+   Duplicate the currently displayed event.
+   */
+  public void duplicateNote() {
+
+    boolean modOK = modIfChanged();
+
+    if (modOK) {
+      Note note = position.getNote();
+      Note newNote = note.duplicate();
+      newNote.setTitle(note.getTitle() + " copy");
+      position = new NotePositioned();
+      position.setIndex (noteList.size());
+      position.setNote(newNote);
+      position.setNewNote(true);
+      fileName = "";
+      displayNote();
+    }
+  }
 
   private void removeNote () {
     if (position.isNewNote()) {
@@ -427,20 +452,24 @@ public class NotenikMainFrame
       boolean okToDelete = true;
       if (CommonPrefs.getShared().confirmDeletes()) {
         int userOption = JOptionPane.showConfirmDialog(this, 
-            "Really delete this Note?",
+            "Really delete Note titled " 
+            + position.getNote().getTitle() + "?",
             "Delete Confirmation",
             JOptionPane.YES_NO_OPTION,
             JOptionPane.QUESTION_MESSAGE);
         okToDelete = (userOption == JOptionPane.YES_OPTION);
       }
       if (okToDelete) {
+        noFindInProgress();
+        Note noteToDelete = position.getNote();
+        String fileToDelete = noteToDelete.getDiskLocation();
         position.setNavigatorToList
             (collectionTabbedPane.getSelectedIndex() == 0);
         position = noteList.remove (position);
-        boolean deleted = noteIO.delete(position.getNote());
+        boolean deleted = new File(fileToDelete).delete();
         if (! deleted) {
           trouble.report(
-              "Unable to delete file " + position.getNote().getFileName(), 
+              "Unable to delete note at " + position.getNote().getFileName(), 
               "Delete Failure");
         }
         positionAndDisplay();
@@ -1001,12 +1030,13 @@ public int checkTags (String find, String replace) {
   }
 
   public void displayNote () {
-    Note url = position.getNote();
-    titleText.setText (url.getTitle());
-    linkText.setText (url.getLinkAsString());
-    tagsTextSelector.setText (url.getTagsAsString());
-    commentsText.setText (url.getBody());
-    lastModDateText.setText (url.getLastModDateStandard());
+    Note note = position.getNote();
+    fileName = note.getFileName();
+    titleText.setText (note.getTitle());
+    linkText.setText (note.getLinkAsString());
+    tagsTextSelector.setText (note.getTagsAsString());
+    commentsText.setText (note.getBody());
+    lastModDateText.setText (note.getLastModDateStandard());
     statusBar.setPosition(position.getIndexForDisplay(), noteList.size());
     modified = false;
   }
@@ -1015,7 +1045,9 @@ public int checkTags (String find, String replace) {
    Check to see if the user has changed anything and take appropriate
    actions if so.
    */
-  public void modIfChanged () {
+  public boolean modIfChanged () {
+    
+    boolean modOK = true;
 
     Note note = position.getNote();
     if (! note.equalsTitle (titleText.getText())) {
@@ -1041,18 +1073,43 @@ public int checkTags (String find, String replace) {
       modified = true;
     }
     
+    
     if (modified) {
-      note.setLastModDateToday();
-      saveNote(note);
-      if (position.isNewNote()) {
-        if (note.hasKey()) {
-          addNoteToList ();
-        } // end if we have note worth adding
+      String newFileName = note.getFileName();
+      if ((! note.hasTitle()) || note.getTitle().length() == 0) {
+        trouble.report (this, 
+            "The Title field has been left blank", 
+            "Missing Key Field");
+        modOK = false;
+      } 
+      else 
+      if ((! newFileName.equals(fileName))
+          && noteIO.exists(newFileName)) {
+        trouble.report (this, 
+            "An event already exists with the same What field",
+            "Duplicate Found");
+        modOK = false;
       } else {
-        noteList.modify(position);
+        note.setLastModDateToday();
+        String oldDiskLocation = note.getDiskLocation();
+        saveNote(note);
+        String newDiskLocation = note.getDiskLocation();
+        if (! newDiskLocation.equals(oldDiskLocation)) {
+          File oldDiskFile = new File (oldDiskLocation);
+          oldDiskFile.delete();
+        }
+        if (position.isNewNote()) {
+          if (note.hasKey()) {
+            addNoteToList ();
+          } // end if we have note worth adding
+        } else {
+          noteList.modify(position);
+        }
+        noteList.fireTableDataChanged();
       }
-      noteList.fireTableDataChanged();
     } // end if modified
+    
+    return modOK;
   } // end modIfChanged method
 
   private void addNoteToList () {
@@ -1191,18 +1248,6 @@ public int checkTags (String find, String replace) {
       setPreferredCollectionView();
       addFirstNote();
     }
-  }
-
-  public void newFile() {
-    closeFile();
-    initCollection();
-    // collectionWindow.setList (noteList);
-    collectionWindow.newNoteFolder(noteList, null);
-    noteList.fireTableDataChanged();
-    setNoteFile (null);
-    setPreferredCollectionView();
-    // newURL();
-    addFirstNote();
   }
 
   /**
@@ -1372,6 +1417,50 @@ public int checkTags (String find, String replace) {
       publishWindow.saveSource();
     }
   }
+  
+  public boolean saveAll() {
+    
+    boolean saveOK = modIfChanged();
+    
+    int numberSaved = 0;
+    int numberDeleted = 0;
+    for (int i = 0; i < noteList.totalSize() && saveOK; i++) {
+      Note nextNote = noteList.getUnfiltered(i);
+      String oldDiskLocation = nextNote.getDiskLocation();
+      try {
+        noteIO.save(nextNote, true);
+      } catch (IOException e) {
+        saveOK = false;
+        trouble.report(this, "Trouble saving the item to disk", "I/O Error");
+        saveOK = false;
+      }
+      if (saveOK) {
+        numberSaved++;
+        String newDiskLocation = nextNote.getDiskLocation();
+        if (! newDiskLocation.equals(oldDiskLocation)) {
+          File oldDiskFile = new File (oldDiskLocation);
+          oldDiskFile.delete();
+          numberDeleted++;
+        }
+      } 
+    }
+    
+    String saveResult;
+    if (saveOK) {
+      saveResult = "succeeded";
+    } else {
+      saveResult = "failed";
+    }
+      logger.recordEvent(LogEvent.NORMAL, 
+          "Save All command succeeded, resulting in " 
+            + String.valueOf(numberSaved)
+            + " saves and "
+            + String.valueOf(numberDeleted)
+            + " deletes", false);
+
+    
+    return saveOK;
+  }
 
   /**
    Save the current collection to a location specified by the user.
@@ -1391,6 +1480,34 @@ public int checkTags (String find, String replace) {
       File chosenFile = selectedFile;
       saveFileAs(chosenFile);
     }
+  }
+  
+  public void newFile() {
+    closeFile();
+    initCollection();
+ 
+    fileChooser.setDialogTitle ("Select Folder for New Note Collection");
+    fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+    if (currentDirectory != null
+        && currentDirectory.exists()
+        && currentDirectory.isDirectory()
+        && currentDirectory.canRead()) {
+      fileChooser.setCurrentDirectory (currentDirectory);
+      fileChooser.setSelectedFile (currentDirectory);
+    }
+    File selectedFile = fileChooser.showSaveDialog (this);
+    if(selectedFile != null) {
+      File chosenFile = selectedFile;
+      saveFileAs(chosenFile);
+      // collectionWindow.setList (noteList);
+      // collectionWindow.newNoteFolder(noteList, null);
+      noteList.fireTableDataChanged();
+      // setNoteFile (null);
+      // setPreferredCollectionView();
+      // newNote();
+      addFirstNote();
+    }
+    
   }
   
   /**
@@ -1926,6 +2043,7 @@ public int checkTags (String find, String replace) {
     openMenuItem = new javax.swing.JMenuItem();
     openRecentMenu = new javax.swing.JMenu();
     fileSaveMenuItem = new javax.swing.JMenuItem();
+    saveAllMenuItem = new javax.swing.JMenuItem();
     fileSaveAsMenuItem = new javax.swing.JMenuItem();
     reloadMenuItem = new javax.swing.JMenuItem();
     jSeparator6 = new javax.swing.JPopupMenu.Separator();
@@ -1952,7 +2070,9 @@ public int checkTags (String find, String replace) {
     lowerCaseTagsMenuItem = new javax.swing.JMenuItem();
     jSeparator3 = new javax.swing.JSeparator();
     validateURLsMenuItem = new javax.swing.JMenuItem();
-    URLMenu = new javax.swing.JMenu();
+    noteMenu = new javax.swing.JMenu();
+    newNoteMenuItem = new javax.swing.JMenuItem();
+    deleteNoteMenuItem = new javax.swing.JMenuItem();
     nextMenuItem = new javax.swing.JMenuItem();
     priorMenuItem = new javax.swing.JMenuItem();
     toolsMenu = new javax.swing.JMenu();
@@ -2205,16 +2325,15 @@ public int checkTags (String find, String replace) {
 
     linkText.setColumns(20);
     linkText.setLineWrap(true);
-    linkText.setRows(3);
+    linkText.setRows(2);
     urlScrollPane.setViewportView(linkText);
 
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 2;
     gridBagConstraints.gridy = 3;
     gridBagConstraints.gridheight = 2;
-    gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.weightx = 1.0;
-    gridBagConstraints.weighty = 0.2;
     gridBagConstraints.insets = new java.awt.Insets(8, 8, 8, 8);
     linkPanel.add(urlScrollPane, gridBagConstraints);
 
@@ -2229,7 +2348,7 @@ public int checkTags (String find, String replace) {
     linkPanel.add(tagsLabel, gridBagConstraints);
 
     commentsLabel.setLabelFor(commentsText);
-    commentsLabel.setText("Comments:");
+    commentsLabel.setText("Body:");
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 6;
@@ -2282,7 +2401,7 @@ public int checkTags (String find, String replace) {
 
     fileMenu.setText("File");
 
-    fileNewMenuItem.setText("New");
+    fileNewMenuItem.setText("New...");
     fileNewMenuItem.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
         fileNewMenuItemActionPerformed(evt);
@@ -2310,6 +2429,14 @@ public int checkTags (String find, String replace) {
       }
     });
     fileMenu.add(fileSaveMenuItem);
+
+    saveAllMenuItem.setText("Save All");
+    saveAllMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        saveAllMenuItemActionPerformed(evt);
+      }
+    });
+    fileMenu.add(saveAllMenuItem);
 
     fileSaveAsMenuItem.setText("Save As...");
     fileSaveAsMenuItem.addActionListener(new java.awt.event.ActionListener() {
@@ -2471,27 +2598,43 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
 
   mainMenuBar.add(listMenu);
 
-  URLMenu.setText("URL");
+  noteMenu.setText("Note");
+
+  newNoteMenuItem.setText("New Note");
+  newNoteMenuItem.addActionListener(new java.awt.event.ActionListener() {
+    public void actionPerformed(java.awt.event.ActionEvent evt) {
+      newNoteMenuItemActionPerformed(evt);
+    }
+  });
+  noteMenu.add(newNoteMenuItem);
+
+  deleteNoteMenuItem.setText("Delete Note");
+  deleteNoteMenuItem.addActionListener(new java.awt.event.ActionListener() {
+    public void actionPerformed(java.awt.event.ActionEvent evt) {
+      deleteNoteMenuItemActionPerformed(evt);
+    }
+  });
+  noteMenu.add(deleteNoteMenuItem);
 
   nextMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_CLOSE_BRACKET, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
-  nextMenuItem.setText("Go to Next URL");
+  nextMenuItem.setText("Go to Next Note");
   nextMenuItem.addActionListener(new java.awt.event.ActionListener() {
     public void actionPerformed(java.awt.event.ActionEvent evt) {
       nextMenuItemActionPerformed(evt);
     }
   });
-  URLMenu.add(nextMenuItem);
+  noteMenu.add(nextMenuItem);
 
   priorMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_OPEN_BRACKET, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
-  priorMenuItem.setText("Go to Previous URL");
+  priorMenuItem.setText("Go to Previous Note");
   priorMenuItem.addActionListener(new java.awt.event.ActionListener() {
     public void actionPerformed(java.awt.event.ActionEvent evt) {
       priorMenuItemActionPerformed(evt);
     }
   });
-  URLMenu.add(priorMenuItem);
+  noteMenu.add(priorMenuItem);
 
-  mainMenuBar.add(URLMenu);
+  mainMenuBar.add(noteMenu);
 
   toolsMenu.setText("Tools");
 
@@ -2578,7 +2721,7 @@ private void fileNewMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//G
 }//GEN-LAST:event_fileNewMenuItemActionPerformed
 
 private void urlNewButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_urlNewButtonActionPerformed
-  newURL();
+  newNote();
 }//GEN-LAST:event_urlNewButtonActionPerformed
 
 private void urlDeleteButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_urlDeleteButtonActionPerformed
@@ -2757,10 +2900,21 @@ private void helpHistoryMenuItemActionPerformed(java.awt.event.ActionEvent evt) 
     exportToNoteNik();
   }//GEN-LAST:event_exportNoteNikMenuItemActionPerformed
 
+  private void saveAllMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveAllMenuItemActionPerformed
+    saveAll();
+  }//GEN-LAST:event_saveAllMenuItemActionPerformed
+
+  private void newNoteMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_newNoteMenuItemActionPerformed
+    newNote();
+  }//GEN-LAST:event_newNoteMenuItemActionPerformed
+
+  private void deleteNoteMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_deleteNoteMenuItemActionPerformed
+    removeNote();
+  }//GEN-LAST:event_deleteNoteMenuItemActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
-  private javax.swing.JMenu URLMenu;
   private javax.swing.JMenuItem addReplaceMenuItem;
   private javax.swing.JMenuItem clearMenuItem;
   private javax.swing.JTabbedPane collectionTabbedPane;
@@ -2768,6 +2922,7 @@ private void helpHistoryMenuItemActionPerformed(java.awt.event.ActionEvent evt) 
   private javax.swing.JScrollPane commentsScrollPane;
   private javax.swing.JTextArea commentsText;
   private javax.swing.JMenuItem deleteMenuItem;
+  private javax.swing.JMenuItem deleteNoteMenuItem;
   private javax.swing.JMenu editMenu;
   private javax.swing.JMenu exportMenu;
   private javax.swing.JMenuItem exportNoteNikMenuItem;
@@ -2805,7 +2960,9 @@ private void helpHistoryMenuItemActionPerformed(java.awt.event.ActionEvent evt) 
   private javax.swing.JMenuBar mainMenuBar;
   private javax.swing.JSplitPane mainSplitPane;
   private javax.swing.JToolBar mainToolBar;
+  private javax.swing.JMenuItem newNoteMenuItem;
   private javax.swing.JMenuItem nextMenuItem;
+  private javax.swing.JMenu noteMenu;
   private javax.swing.JTable noteTable;
   private javax.swing.JTree noteTree;
   private javax.swing.JMenuItem openMenuItem;
@@ -2816,6 +2973,7 @@ private void helpHistoryMenuItemActionPerformed(java.awt.event.ActionEvent evt) 
   private javax.swing.JMenuItem publishWindowMenuItem;
   private javax.swing.JMenuItem reloadMenuItem;
   private javax.swing.JMenuItem replaceMenuItem;
+  private javax.swing.JMenuItem saveAllMenuItem;
   private javax.swing.JMenuItem submitFeedbackMenuItem;
   private javax.swing.JScrollPane tableScrollPane;
   private javax.swing.JLabel tagsLabel;

@@ -37,6 +37,11 @@ public class CollectionWindow
   public static final String PARMS_TITLE        = "Collection Parms";
   public static final String SECONDARY_LOCATION = "Secondary Location";
   public static final String SECONDARY_PREFIX   = "Secondary Prefix";
+  public static final String IO_STYLE           = "IO Style";
+  public static final String IO_EXPLICIT        = "Explicit";
+  public static final String IO_IMPLICIT        = "Implicit";
+  public static final String IO_IMPLICIT_UNDERLINES = "Underlines";
+  public static final String IO_IMPLICIT_FILENAME = "Filename";
   
   public static final DataFieldDefinition SECONDARY_LOCATION_DEF 
       = new DataFieldDefinition(SECONDARY_LOCATION);
@@ -51,10 +56,17 @@ public class CollectionWindow
   
   private Note parmsNote = new Note(PARMS_TITLE);
   
+  private boolean ioStyleSet = false;
+  
   /** Creates new form CollectionWindow */
   public CollectionWindow() {
     initComponents();
     titleText.setText ("Notes");
+    ioStyleComboBox.removeAll();
+    ioStyleComboBox.addItem(IO_EXPLICIT);
+    ioStyleComboBox.addItem(IO_IMPLICIT);
+    ioStyleComboBox.addItem(IO_IMPLICIT_UNDERLINES);
+    ioStyleComboBox.addItem(IO_IMPLICIT_FILENAME);
     
     // this.setBounds (100, 100, 600, 540);
   }
@@ -62,8 +74,11 @@ public class CollectionWindow
   public void newNoteFolder (NoteList noteList, NoteIO io) {
     this.noteList = noteList;
     this.io = io;
-    this.source = noteList.getSource();
+    source = noteList.getSource();
     parmsNote = new Note(PARMS_TITLE);
+    if (io == null) {
+      source = null;
+    }
     if (source == null) {
       secondaryLocationPrefixText.setText("");
       fileNameText.setText("");
@@ -74,10 +89,26 @@ public class CollectionWindow
       if (io.exists(parmsNote)) {
         try {
           parmsNote = io.getNote(parmsNote.getFileName());
+          // DataField secondaryLocationField = parmsNote.getField(SECONDARY_LOCATION);
+          // String secondaryLocationData = secondaryLocationField.getData();
           secondaryLocationText.setText
               (parmsNote.getField(SECONDARY_LOCATION).getData());
-          this.secondaryLocationPrefixText.setText
+          secondaryLocationPrefixText.setText
               (parmsNote.getField(SECONDARY_PREFIX).getData());
+          String ioStyle = parmsNote.getField(IO_STYLE).getData();
+          if (ioStyle != null
+              && ioStyle.length() > 0) {
+            int i = 0;
+            boolean found = false;
+            while (i < ioStyleComboBox.getItemCount()
+                && (! found)) {
+              String comboBoxItem = (String)ioStyleComboBox.getItemAt(i);
+              if (comboBoxItem.equalsIgnoreCase(ioStyle)) {
+                ioStyleComboBox.setSelectedIndex(i);
+                found = true;
+              } // end if match
+            } // end while looking for match
+          } // end if we have an I/O Style value
         } catch (IOException e) {
           System.out.println("I/O Exception attempting to retrieve " + PARMS_TITLE);
         }
@@ -162,6 +193,8 @@ public class CollectionWindow
     titleLabel = new javax.swing.JLabel();
     titleText = new javax.swing.JTextField();
     filler = new javax.swing.JLabel();
+    ioStyleLabel = new javax.swing.JLabel();
+    ioStyleComboBox = new javax.swing.JComboBox();
     secondaryLocationPanel = new javax.swing.JPanel();
     secondaryLocationLabel = new javax.swing.JLabel();
     secondaryLocationText = new javax.swing.JTextField();
@@ -236,6 +269,23 @@ public class CollectionWindow
     gridBagConstraints.weighty = 1.0;
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
     getContentPane().add(filler, gridBagConstraints);
+
+    ioStyleLabel.setText("I/O Style:");
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 0;
+    gridBagConstraints.gridy = 4;
+    gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
+    gridBagConstraints.insets = new java.awt.Insets(4, 10, 4, 10);
+    getContentPane().add(ioStyleLabel, gridBagConstraints);
+
+    ioStyleComboBox.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 0;
+    gridBagConstraints.gridy = 5;
+    gridBagConstraints.gridwidth = 3;
+    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+    gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
+    getContentPane().add(ioStyleComboBox, gridBagConstraints);
 
     secondaryLocationPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
     secondaryLocationPanel.setLayout(new java.awt.GridBagLayout());
@@ -327,7 +377,7 @@ public class CollectionWindow
 
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 4;
+    gridBagConstraints.gridy = 6;
     gridBagConstraints.gridwidth = 3;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
@@ -341,7 +391,7 @@ public class CollectionWindow
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 5;
+    gridBagConstraints.gridy = 7;
     getContentPane().add(cancelButton, gridBagConstraints);
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 1;
@@ -362,7 +412,7 @@ public class CollectionWindow
     });
     gridBagConstraints = new java.awt.GridBagConstraints();
     gridBagConstraints.gridx = 2;
-    gridBagConstraints.gridy = 5;
+    gridBagConstraints.gridy = 7;
     getContentPane().add(okButton, gridBagConstraints);
 
     pack();
@@ -420,6 +470,8 @@ private void formComponentHidden(java.awt.event.ComponentEvent evt) {//GEN-FIRST
   private javax.swing.JLabel filler;
   private javax.swing.JLabel filler1;
   private javax.swing.JLabel filler3;
+  private javax.swing.JComboBox ioStyleComboBox;
+  private javax.swing.JLabel ioStyleLabel;
   private javax.swing.JButton okButton;
   private javax.swing.JButton secondaryLocationBrowseButton;
   private javax.swing.JLabel secondaryLocationLabel;
