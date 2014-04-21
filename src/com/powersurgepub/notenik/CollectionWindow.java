@@ -54,12 +54,18 @@ public class CollectionWindow
   
   private File source = null;
   
-  private Note parmsNote = new Note(PARMS_TITLE);
+  private RecordDefinition recDef = null;
+  
+  private Note parmsNote = null;
   
   private boolean ioStyleSet = false;
   
   /** Creates new form CollectionWindow */
   public CollectionWindow() {
+    recDef = new RecordDefinition();
+    recDef.addColumn(Note.TITLE_DEF);
+    recDef.addColumn(SECONDARY_LOCATION_DEF);
+    recDef.addColumn(SECONDARY_PREFIX_DEF);
     initComponents();
     titleText.setText ("Notes");
     ioStyleComboBox.removeAll();
@@ -75,7 +81,7 @@ public class CollectionWindow
     this.noteList = noteList;
     this.io = io;
     source = noteList.getSource();
-    parmsNote = new Note(PARMS_TITLE);
+    parmsNote = new Note(recDef, PARMS_TITLE);
     if (io == null) {
       source = null;
     }
@@ -154,11 +160,11 @@ public class CollectionWindow
    @param noteIO The I/O module to use. 
   */
   public void saveParms (NoteIO noteIO) {
-    parmsNote = new Note(PARMS_TITLE);
-    parmsNote.addField
-        (SECONDARY_LOCATION_DEF, secondaryLocationText.getText());
-    parmsNote.addField
-        (SECONDARY_PREFIX_DEF, secondaryLocationPrefixText.getText());
+    parmsNote = new Note(recDef, PARMS_TITLE);
+    parmsNote.storeField
+        (recDef, SECONDARY_LOCATION_DEF, secondaryLocationText.getText());
+    parmsNote.storeField
+        (recDef, SECONDARY_PREFIX_DEF, secondaryLocationPrefixText.getText());
     try {
       noteIO.save(parmsNote, true);
     } catch (IOException e) {

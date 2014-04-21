@@ -122,10 +122,12 @@ public class NotenikMainFrame
   private             TextSelector        tagsTextSelector;
   private             TagTreeCellRenderer treeCellRenderer;
 
-  private             NotePositioned      position = new NotePositioned();
+  private             NotePositioned      position = null;
   private             boolean             modified = false;
   private             boolean             unsavedChanges = false;
-  private             NoteList            noteList = new NoteList();
+  private             NoteList            noteList = null;
+  private             DataDictionary      dict = null;
+  private             RecordDefinition    recDef = null;
   private             XFileChooser        fileChooser = new XFileChooser();
 
   /** File of Notes that is currently open. */
@@ -226,6 +228,10 @@ public class NotenikMainFrame
     if (filePrefs.purgeRecentFilesAtStartup()) {
       recentFiles.purgeInaccessibleFiles();
     }
+    
+    initRecDef();
+    noteList = new NoteList(recDef);
+    position = new NotePositioned(recDef);
 
     // Use special text selector for the tags
     tagsTextSelector = new TextSelector();
@@ -389,7 +395,7 @@ public class NotenikMainFrame
     boolean modOK = modIfChanged();
 
     if (modOK) {
-      position = new NotePositioned();
+      position = new NotePositioned(recDef);
       position.setIndex (noteList.size());
       fileName = "";
       displayNote();
@@ -401,7 +407,7 @@ public class NotenikMainFrame
    Add the first Note for a new collection.
    */
   public void addFirstNote() {
-    position = new NotePositioned();
+    position = new NotePositioned(recDef);
     position.setIndex (noteList.size());
 
     Note note = position.getNote();
@@ -436,7 +442,7 @@ public class NotenikMainFrame
       Note note = position.getNote();
       Note newNote = note.duplicate();
       newNote.setTitle(note.getTitle() + " copy");
-      position = new NotePositioned();
+      position = new NotePositioned(recDef);
       position.setIndex (noteList.size());
       position.setNote(newNote);
       position.setNewNote(true);
@@ -497,7 +503,7 @@ public class NotenikMainFrame
   public void changeAllTags (String from, String to) {
 
     modIfChanged();
-    NotePositioned workNote = new NotePositioned ();
+    NotePositioned workNote = new NotePositioned (recDef);
     int mods = 0;
     for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
       workNote.setNote (noteList.get (workIndex));
@@ -520,7 +526,7 @@ public class NotenikMainFrame
 
   private void flattenTags() {
     modIfChanged();
-    NotePositioned workNote = new NotePositioned();
+    NotePositioned workNote = new NotePositioned(recDef);
     for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
       workNote.setNote (noteList.get (workIndex));
       workNote.getNote().flattenTags();
@@ -532,7 +538,7 @@ public class NotenikMainFrame
 
   private void lowerCaseTags() {
     modIfChanged();
-    NotePositioned workNote = new NotePositioned();
+    NotePositioned workNote = new NotePositioned(recDef);
     for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
       workNote.setNote (noteList.get (workIndex));
       workNote.getNote().lowerCaseTags();
@@ -1031,14 +1037,36 @@ public int checkTags (String find, String replace) {
 
   public void displayNote () {
     Note note = position.getNote();
+    if (note.hasDiskLocation()) {
+      reload (note);
+    }
     fileName = note.getFileName();
     titleText.setText (note.getTitle());
     linkText.setText (note.getLinkAsString());
     tagsTextSelector.setText (note.getTagsAsString());
     commentsText.setText (note.getBody());
-    lastModDateText.setText (note.getLastModDateStandard());
+    commentsText.setCaretPosition(0);
+    lastModDateText.setText (note.getLastModDate(Note.COMPLETE_FORMAT));
     statusBar.setPosition(position.getIndexForDisplay(), noteList.size());
     modified = false;
+  }
+  
+  private void reload (Note note) {
+      /* ClubEventReader reader 
+          = new ClubEventReader (
+              clubEvent.getDiskLocation(), 
+              ClubEventReader.PLANNER_TYPE);
+      boolean ok = true;
+      reader.setClubEventCalc(clubEventCalc);
+      try {
+        reader.openForInput(clubEvent);
+      } catch (java.io.IOException e) {
+        ok = false;
+        Logger.getShared().recordEvent(LogEvent.MEDIUM, 
+            "Trouble reading " + clubEvent.getDiskLocation(), false);
+      }
+      
+      reader.close(); */
   }
 
   /**
@@ -1090,6 +1118,7 @@ public int checkTags (String find, String replace) {
             "Duplicate Found");
         modOK = false;
       } else {
+        // Modify note on disk
         note.setLastModDateToday();
         String oldDiskLocation = note.getDiskLocation();
         saveNote(note);
@@ -1289,7 +1318,7 @@ public int checkTags (String find, String replace) {
     }
     collectionWindow.newNoteFolder(noteList, noteIO);
     noteList.fireTableDataChanged();
-    position = new NotePositioned ();
+    position = new NotePositioned (recDef);
     setPreferredCollectionView();
     position = noteList.first(position);
     positionAndDisplay();
@@ -1313,7 +1342,10 @@ public int checkTags (String find, String replace) {
   }
 
   private void initCollection () {
-    noteList = new NoteList();
+    
+    initRecDef();
+    noteList = new NoteList(recDef);
+    position = new NotePositioned(recDef);
     noteTable.setModel(noteList);
     tagsTextSelector.setValueList(noteList.getTagsList());
     noteTree.setModel (noteList.getTagsModel().getModel());
@@ -1323,6 +1355,15 @@ public int checkTags (String find, String replace) {
     noteTree.setCellRenderer (treeCellRenderer);
     noteTree.doLayout();
     // setUnsavedChanges(false);
+  }
+  
+  private void initRecDef() {
+    dict = new DataDictionary();
+    recDef = new RecordDefinition(dict);
+    recDef.addColumn(Note.TITLE_DEF);
+    recDef.addColumn(Note.TAGS_DEF);
+    recDef.addColumn(Note.LINK_DEF);
+    recDef.addColumn(Note.BODY_DEF);
   }
 
   private void importFile () {
@@ -1339,7 +1380,7 @@ public int checkTags (String find, String replace) {
     if (selectedFile != null) {
       File importFile = selectedFile;
       currentDirectory = importFile;
-      NoteIO importer = new NoteIO (importFile);
+      NoteIO importer = new NoteIO (recDef, importFile);
       try {
         importer.load(noteList);
       } catch (IOException e) {
@@ -1360,7 +1401,7 @@ public int checkTags (String find, String replace) {
         && selectedFile.isDirectory()
         && selectedFile.canWrite()) {
       File exportFolder = selectedFile;
-      NoteIO exportWriter = new NoteIO(exportFolder);
+      NoteIO exportWriter = new NoteIO(recDef, exportFolder);
       Note workNote;
       try {
         for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
@@ -1544,7 +1585,7 @@ public int checkTags (String find, String replace) {
       statusBar.setFileName("            ", " ");
     } else {
       noteFile = file;
-      noteIO = new NoteIO(noteFile);
+      noteIO = new NoteIO(recDef, noteFile);
       exporter = new NoteExport(this);
       if (noteList != null) {
         noteList.setSource (file);
@@ -1712,34 +1753,38 @@ public int checkTags (String find, String replace) {
   }
   
   /**
-   Create a backup of the current file. 
-   */
-  public boolean promptForBackup () {
+   Prompt the user for a backup location. 
 
+   @return True if backup was successful.
+  */
+  public boolean promptForBackup() {
+    boolean modOK = modIfChanged();
     boolean backedUp = false;
 
-    fileChooser.setDialogTitle ("Make Backup of Notenik File");
-    fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-    FileName urlFileName = new FileName (home.getUserHome());
-    if (noteFile != null && noteFile.exists()) {
-      urlFileName = new FileName (noteFile);
-    }
-    File backupFolder = getBackupFolder();
-    fileChooser.setCurrentDirectory (backupFolder);
-    if (noteFile != null && noteFile.exists()) {
-      fileChooser.setSelectedFile
-          (new File(backupFolder.toString() + xos.getPathSeparator()
-            + filePrefs.getBackupFileName(noteFile, urlFileName.getExt())));
-    }
-    File selectedFile = fileChooser.showSaveDialog (this);
-    if(selectedFile != null) {
-      File backupFile = selectedFile;
-      backup (backupFile);
-      userPrefs.setPref (FavoritesPrefs.BACKUP_FOLDER,
-          fileChooser.getSelectedFile().getParentFile().toString());
-      FileSpec fileSpec = recentFiles.get(0);
-      fileSpec.setBackupFolder(backupFile);
-    }
+		if (modOK) {
+      fileChooser.setDialogTitle ("Make Backup of Notenik Folder");
+      fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+      FileName noteFileName = new FileName (home.getUserHome());
+      if (noteFile != null && noteFile.exists()) {
+        noteFileName = new FileName (noteFile);
+      }
+      File backupFolder = getBackupFolder();
+      fileChooser.setCurrentDirectory (backupFolder);
+      File selectedFile = fileChooser.showSaveDialog (this);
+      if (selectedFile != null) {
+        File backupFile = selectedFile;
+        backedUp = backup (backupFile);
+        FileSpec fileSpec = recentFiles.get(0);
+        fileSpec.setBackupFolder(backupFile);
+        if (backedUp) {
+          JOptionPane.showMessageDialog(this,
+              "Backup completed successfully",
+              "Backup Results",
+              JOptionPane.INFORMATION_MESSAGE,
+              Home.getShared().getIcon());
+        } // end if backed up successfully
+      } // end if the user selected a backup location
+    } // end if modIfChanged had no problems
 
     return backedUp;
 
@@ -1752,16 +1797,32 @@ public int checkTags (String find, String replace) {
   
    @return 
   */
-  public boolean backup(File backupFile) {
-    boolean backedUp = false; 
-    backedUp = exporter.exportToURLUnion (backupFile, noteList);
+  public boolean backup(File folderForBackups) {
+    
+    StringBuilder backupPath = new StringBuilder();
+    try {
+      backupPath.append(folderForBackups.getCanonicalPath());
+    } catch (IOException e) {
+      backupPath.append(folderForBackups.getAbsolutePath());
+    }
+    backupPath.append(xos.getPathSeparator());
+    backupPath.append(noteFile.getName());
+    backupPath.append(" ");
+    backupPath.append("backup ");
+    backupPath.append(filePrefs.getBackupDate());
+    File backupFolder = new File (backupPath.toString());
+    backupFolder.mkdir();
+    boolean backedUp = FileUtils.copyFolder (noteFile, backupFolder);
     if (backedUp) {
+      FileSpec fileSpec = recentFiles.get(0);
+      filePrefs.saveLastBackupDate
+          (fileSpec, recentFiles.getPrefsQualifier(), 0);
       logger.recordEvent (LogEvent.NORMAL,
-          "Notes backed up to " + backupFile.toString(),
+          "Notes backed up to " + backupFolder.toString(),
             false);
     } else {
       logger.recordEvent (LogEvent.MEDIUM,
-          "Problem backing up Notes to " + backupFile.toString(),
+          "Problem backing up Notes to " + backupFolder.toString(),
             false);
     }
     return backedUp;
@@ -2392,7 +2453,7 @@ public int checkTags (String find, String replace) {
     gridBagConstraints.gridy = 8;
     gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-    gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 8);
+    gridBagConstraints.insets = new java.awt.Insets(4, 8, 4, 8);
     linkPanel.add(lastModDateText, gridBagConstraints);
 
     mainSplitPane.setRightComponent(linkPanel);
@@ -2769,8 +2830,17 @@ private void noteTableKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:even
 }//GEN-LAST:event_noteTableKeyReleased
 
 private void fileBackupMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileBackupMenuItemActionPerformed
-  if (noteFile != null && noteFile.exists()) {
+  if (noteFile != null 
+      && noteFile.exists()
+      && noteList != null
+      && noteList.size() > 0) {
     promptForBackup();
+  } else {
+    trouble.report(
+        this, 
+        "Open a Notes folder before attempting a backup", 
+        "Backup Error", 
+        JOptionPane.ERROR_MESSAGE);
   }
 }//GEN-LAST:event_fileBackupMenuItemActionPerformed
 
