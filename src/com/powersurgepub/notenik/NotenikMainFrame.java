@@ -23,6 +23,7 @@ package com.powersurgepub.notenik;
   import com.powersurgepub.psdatalib.pstags.*;
   import com.powersurgepub.psdatalib.notenik.*;
   import com.powersurgepub.psdatalib.pslist.*;
+  import com.powersurgepub.psdatalib.tabdelim.*;
   import com.powersurgepub.pspub.*;
   import com.powersurgepub.psutils.*;
   import com.powersurgepub.urlvalidator.*;
@@ -478,6 +479,7 @@ public class NotenikMainFrame
               "Unable to delete note at " + position.getNote().getFileName(), 
               "Delete Failure");
         }
+        noteList.fireTableDataChanged();
         positionAndDisplay();
       } // end if user confirmed delete
     } // end if new URL not yet saved
@@ -1264,20 +1266,6 @@ public int checkTags (String find, String replace) {
       positionAndDisplay();
     }
   }
-  
-  private void clearFile() {
-    modIfChanged();
-    int option = JOptionPane.showConfirmDialog(this, 
-        "Are you sure you want to delete the entire contents of the current list?");
-    if (option == JOptionPane.YES_OPTION) {
-      noFindInProgress();
-      initCollection();
-      // collectionWindow.setList (noteList);
-      noteList.fireTableDataChanged();
-      setPreferredCollectionView();
-      addFirstNote();
-    }
-  }
 
   /**
    Let the user choose a folder to open.
@@ -1394,41 +1382,97 @@ public int checkTags (String find, String replace) {
   }
   
   private void exportToNoteNik() {
-    fileChooser.setDialogTitle ("Export to NoteNik");
-    fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-    File selectedFile = fileChooser.showSaveDialog(this);
-    if (selectedFile != null
-        && selectedFile.isDirectory()
-        && selectedFile.canWrite()) {
-      File exportFolder = selectedFile;
-      NoteIO exportWriter = new NoteIO(recDef, exportFolder);
-      Note workNote;
-      try {
-        for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
-          workNote = noteList.get (workIndex);
-          exportWriter.save (workNote, false);
+    boolean modOK = modIfChanged();
+    int exported = 0;
+    if (modOK) {
+      fileChooser.setDialogTitle ("Export to NoteNik");
+      fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+      File selectedFile = fileChooser.showSaveDialog(this);
+      if (selectedFile != null
+          && selectedFile.isDirectory()
+          && selectedFile.canWrite()) {
+        File exportFolder = selectedFile;
+        NoteIO exportWriter = new NoteIO(recDef, exportFolder);
+        Note workNote;
+        try {
+          for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
+            workNote = noteList.get (workIndex);
+            exportWriter.save (workNote, false);
+          }
+          JOptionPane.showMessageDialog(this,
+                String.valueOf(noteList.size()) + " Notes exported successfully to"
+                  + GlobalConstants.LINE_FEED
+                  + selectedFile.toString(),
+                "Export Results",
+                JOptionPane.INFORMATION_MESSAGE,
+                Home.getShared().getIcon());
+            logger.recordEvent (LogEvent.NORMAL, String.valueOf(noteList.size()) 
+                + " Notes exported to " 
+                + selectedFile.toString(),
+                false);
+            statusBar.setStatus(String.valueOf(noteList.size()) 
+              + " Notes exported");
+        } catch (IOException e) {
+          Trouble.getShared().report(this, 
+              "I/O Error exporting to NoteNik format", 
+              "I/O Error", 
+              JOptionPane.ERROR_MESSAGE);
         }
-        JOptionPane.showMessageDialog(this,
-              String.valueOf(noteList.size()) + " Notes exported successfully to"
+      } // end if user selected a valid folder
+    } // end if were able to save the last modified record
+  } // end method export to NoteNik
+  
+  /**
+   Export the list of events in tab-delimited format.
+   */
+  private void exportTabDelim() {
+    boolean modOK = modIfChanged();
+    int exported = 0;
+    if (modOK) {
+      fileChooser.setDialogTitle ("Export to Tab-Delimited");
+      fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+      fileChooser.setCurrentDirectory(noteFile.getParentFile());
+      fileChooser.setSelectedFile
+          (new File(noteFile.getParentFile(), noteFile.getName() + ".tab"));
+      File selectedFile = fileChooser.showSaveDialog (this);
+      if (selectedFile != null) {
+        TabDelimFile tabs = new TabDelimFile(selectedFile);
+        Note workNote;
+        try {
+          tabs.openForOutput(recDef);
+          for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
+            workNote = noteList.get (workIndex);
+            if (workNote != null) {
+              tabs.nextRecordOut(workNote);
+              exported++;
+            }
+          }
+          tabs.close();
+          JOptionPane.showMessageDialog(this,
+              String.valueOf(exported) + " Notes exported successfully to"
                 + GlobalConstants.LINE_FEED
                 + selectedFile.toString(),
               "Export Results",
               JOptionPane.INFORMATION_MESSAGE,
               Home.getShared().getIcon());
-          logger.recordEvent (LogEvent.NORMAL, String.valueOf(noteList.size()) 
-              + " Notes exported to " 
+          logger.recordEvent (LogEvent.NORMAL, String.valueOf(exported) 
+              + " Notes exported in tab-delimited format to " 
               + selectedFile.toString(),
               false);
-          statusBar.setStatus(String.valueOf(noteList.size()) 
+          statusBar.setStatus(String.valueOf(exported) 
             + " Notes exported");
-      } catch (IOException e) {
-        Trouble.getShared().report(this, 
-            "I/O Error exporting to NoteNik format", 
-            "I/O Error", 
-            JOptionPane.ERROR_MESSAGE);
-      }
-    } // end if user selected a valid folder
-  } // end method export to NoteNik
+        } catch (java.io.IOException e) {
+          logger.recordEvent (LogEvent.MEDIUM,
+            "Problem exporting Notes to " + selectedFile.toString(),
+              false);
+            trouble.report ("I/O error attempting to export notes to " 
+                + selectedFile.toString(),
+              "I/O Error");
+            statusBar.setStatus("Trouble exporting Notes");
+        } // end if I/O error
+      } // end if user selected an output file
+    } // end if were able to save the last modified record
+  }
   
   private void ioException(IOException e) {
     Trouble.getShared().report("I/O Exception", "Trouble");
@@ -2107,8 +2151,6 @@ public int checkTags (String find, String replace) {
     saveAllMenuItem = new javax.swing.JMenuItem();
     fileSaveAsMenuItem = new javax.swing.JMenuItem();
     reloadMenuItem = new javax.swing.JMenuItem();
-    jSeparator6 = new javax.swing.JPopupMenu.Separator();
-    clearMenuItem = new javax.swing.JMenuItem();
     jSeparator1 = new javax.swing.JSeparator();
     propertiesMenuItem = new javax.swing.JMenuItem();
     jSeparator2 = new javax.swing.JSeparator();
@@ -2120,6 +2162,7 @@ public int checkTags (String find, String replace) {
     importMenuItem = new javax.swing.JMenuItem();
     exportMenu = new javax.swing.JMenu();
     exportNoteNikMenuItem = new javax.swing.JMenuItem();
+    exportTabDelimitedMenuItem = new javax.swing.JMenuItem();
     editMenu = new javax.swing.JMenu();
     deleteMenuItem = new javax.swing.JMenuItem();
     listMenu = new javax.swing.JMenu();
@@ -2514,15 +2557,6 @@ public int checkTags (String find, String replace) {
       }
     });
     fileMenu.add(reloadMenuItem);
-    fileMenu.add(jSeparator6);
-
-    clearMenuItem.setText("Clear...");
-    clearMenuItem.addActionListener(new java.awt.event.ActionListener() {
-      public void actionPerformed(java.awt.event.ActionEvent evt) {
-        clearMenuItemActionPerformed(evt);
-      }
-    });
-    fileMenu.add(clearMenuItem);
     fileMenu.add(jSeparator1);
 
     propertiesMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_I, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -2580,6 +2614,14 @@ public int checkTags (String find, String replace) {
       }
     });
     exportMenu.add(exportNoteNikMenuItem);
+
+    exportTabDelimitedMenuItem.setText("Tab-Delimited...");
+    exportTabDelimitedMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        exportTabDelimitedMenuItemActionPerformed(evt);
+      }
+    });
+    exportMenu.add(exportTabDelimitedMenuItem);
 
     fileMenu.add(exportMenu);
 
@@ -2661,6 +2703,7 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
 
   noteMenu.setText("Note");
 
+  newNoteMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
   newNoteMenuItem.setText("New Note");
   newNoteMenuItem.addActionListener(new java.awt.event.ActionListener() {
     public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -2962,10 +3005,6 @@ private void helpHistoryMenuItemActionPerformed(java.awt.event.ActionEvent evt) 
     startReplace();
   }//GEN-LAST:event_replaceMenuItemActionPerformed
 
-  private void clearMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_clearMenuItemActionPerformed
-    clearFile();
-  }//GEN-LAST:event_clearMenuItemActionPerformed
-
   private void exportNoteNikMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportNoteNikMenuItemActionPerformed
     exportToNoteNik();
   }//GEN-LAST:event_exportNoteNikMenuItemActionPerformed
@@ -2982,11 +3021,14 @@ private void helpHistoryMenuItemActionPerformed(java.awt.event.ActionEvent evt) 
     removeNote();
   }//GEN-LAST:event_deleteNoteMenuItemActionPerformed
 
+  private void exportTabDelimitedMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportTabDelimitedMenuItemActionPerformed
+    exportTabDelim();
+  }//GEN-LAST:event_exportTabDelimitedMenuItemActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
   private javax.swing.JMenuItem addReplaceMenuItem;
-  private javax.swing.JMenuItem clearMenuItem;
   private javax.swing.JTabbedPane collectionTabbedPane;
   private javax.swing.JLabel commentsLabel;
   private javax.swing.JScrollPane commentsScrollPane;
@@ -2996,6 +3038,7 @@ private void helpHistoryMenuItemActionPerformed(java.awt.event.ActionEvent evt) 
   private javax.swing.JMenu editMenu;
   private javax.swing.JMenu exportMenu;
   private javax.swing.JMenuItem exportNoteNikMenuItem;
+  private javax.swing.JMenuItem exportTabDelimitedMenuItem;
   private javax.swing.JMenuItem fileBackupMenuItem;
   private javax.swing.JMenu fileMenu;
   private javax.swing.JMenuItem fileNewMenuItem;
@@ -3016,7 +3059,6 @@ private void helpHistoryMenuItemActionPerformed(java.awt.event.ActionEvent evt) 
   private javax.swing.JSeparator jSeparator3;
   private javax.swing.JSeparator jSeparator4;
   private javax.swing.JSeparator jSeparator5;
-  private javax.swing.JPopupMenu.Separator jSeparator6;
   private javax.swing.JSeparator jSeparator7;
   private javax.swing.JSeparator jSeparator8;
   private javax.swing.JLabel lastModDateLabel;
