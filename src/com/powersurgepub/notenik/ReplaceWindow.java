@@ -132,7 +132,7 @@ public class ReplaceWindow
     fillerLabel = new javax.swing.JLabel();
     caseSensitiveCheckBox = new javax.swing.JCheckBox();
 
-    setTitle("URL Union Find and Replace");
+    setTitle("Notenik Find and Replace");
     getContentPane().setLayout(new java.awt.GridBagLayout());
 
     findLabel.setText("Find:");

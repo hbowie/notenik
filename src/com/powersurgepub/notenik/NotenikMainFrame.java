@@ -458,13 +458,19 @@ public class NotenikMainFrame
     } else {
       boolean okToDelete = true;
       if (CommonPrefs.getShared().confirmDeletes()) {
-        int userOption = JOptionPane.showConfirmDialog(this, 
-            "Really delete Note titled " 
+        Object[] options = {"Yes, please",
+                            "No, thanks"};
+        int option = JOptionPane.showOptionDialog(
+          XOS.getShared().getMainWindow(),
+          "Really delete Note titled " 
             + position.getNote().getTitle() + "?",
-            "Delete Confirmation",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.QUESTION_MESSAGE);
-        okToDelete = (userOption == JOptionPane.YES_OPTION);
+          "Delete Confirmation",
+          JOptionPane.YES_NO_OPTION, 
+          JOptionPane.QUESTION_MESSAGE, 
+          Home.getShared().getIcon(), 
+          options, 
+          options[0]);
+        okToDelete = (option == 0);
       }
       if (okToDelete) {
         noFindInProgress();
@@ -615,17 +621,17 @@ public int checkTags (String find, String replace) {
     @param findString    The string we're searching for. 
     @param replaceString The string to replace the find string. 
     @param checkTitle    Should we check the title of the URL item?
-    @param checkURL      Should we check the URL of the URL item?
+    @param checkLink      Should we check the URL of the URL item?
     @param checkTags     Should we check the tags of the URL item?
-    @param checkComments Should we check the comments?
+    @param checkBody Should we check the comments?
     @param caseSensitive Should we do a case-sensitive comparison?
   
   */
   public int replaceAll (String findString, String replaceString, 
       boolean checkTitle, 
-      boolean checkURL, 
+      boolean checkLink, 
       boolean checkTags, 
-      boolean checkComments,
+      boolean checkBody,
       boolean caseSensitive) {
     
     int itemsChanged = 0;
@@ -636,9 +642,9 @@ public int checkTags (String find, String replace) {
         findButton.getText(),
         findString, 
         checkTitle, 
-        checkURL, 
+        checkLink, 
         checkTags,
-        checkComments,
+        checkBody,
         caseSensitive,
         false);
       if (found) {
@@ -646,9 +652,9 @@ public int checkTags (String find, String replace) {
             findString, 
             replaceString, 
             checkTitle, 
-            checkURL, 
+            checkLink, 
             checkTags, 
-            checkComments);
+            checkBody);
         if (replaced) {
           itemsChanged++;
         }
@@ -1967,7 +1973,7 @@ public int checkTags (String find, String replace) {
       progressDialog = new ProgressMonitor (this,
           "Validating "
               + String.valueOf (progressMax)
-              + " Web Page Notes...",
+              + " Links...",
           "                                                  ", // Status Note
           0,              // lower bound of range
           progressMax     // upper bound of range
@@ -2152,8 +2158,6 @@ public int checkTags (String find, String replace) {
     fileSaveAsMenuItem = new javax.swing.JMenuItem();
     reloadMenuItem = new javax.swing.JMenuItem();
     jSeparator1 = new javax.swing.JSeparator();
-    propertiesMenuItem = new javax.swing.JMenuItem();
-    jSeparator2 = new javax.swing.JSeparator();
     publishWindowMenuItem = new javax.swing.JMenuItem();
     publishNowMenuItem = new javax.swing.JMenuItem();
     jSeparator4 = new javax.swing.JSeparator();
@@ -2165,7 +2169,9 @@ public int checkTags (String find, String replace) {
     exportTabDelimitedMenuItem = new javax.swing.JMenuItem();
     editMenu = new javax.swing.JMenu();
     deleteMenuItem = new javax.swing.JMenuItem();
-    listMenu = new javax.swing.JMenu();
+    collectionMenu = new javax.swing.JMenu();
+    propertiesMenuItem = new javax.swing.JMenuItem();
+    jSeparator2 = new javax.swing.JPopupMenu.Separator();
     findMenuItem = new javax.swing.JMenuItem();
     replaceMenuItem = new javax.swing.JMenuItem();
     jSeparator10 = new javax.swing.JPopupMenu.Separator();
@@ -2559,16 +2565,6 @@ public int checkTags (String find, String replace) {
     fileMenu.add(reloadMenuItem);
     fileMenu.add(jSeparator1);
 
-    propertiesMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_I, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
-    propertiesMenuItem.setText("Get Info");
-    propertiesMenuItem.addActionListener(new java.awt.event.ActionListener() {
-      public void actionPerformed(java.awt.event.ActionEvent evt) {
-        propertiesMenuItemActionPerformed(evt);
-      }
-    });
-    fileMenu.add(propertiesMenuItem);
-    fileMenu.add(jSeparator2);
-
     publishWindowMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
     publishWindowMenuItem.setText("Publish...");
     publishWindowMenuItem.addActionListener(new java.awt.event.ActionListener() {
@@ -2640,7 +2636,17 @@ public int checkTags (String find, String replace) {
 
     mainMenuBar.add(editMenu);
 
-    listMenu.setText("List");
+    collectionMenu.setText("Collection");
+
+    propertiesMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_I, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+    propertiesMenuItem.setText("Get Info");
+    propertiesMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        propertiesMenuItemActionPerformed(evt);
+      }
+    });
+    collectionMenu.add(propertiesMenuItem);
+    collectionMenu.add(jSeparator2);
 
     findMenuItem.setText("Find");
     findMenuItem.setAccelerator (KeyStroke.getKeyStroke (KeyEvent.VK_F,
@@ -2650,7 +2656,7 @@ public int checkTags (String find, String replace) {
       findMenuItemActionPerformed(evt);
     }
   });
-  listMenu.add(findMenuItem);
+  collectionMenu.add(findMenuItem);
 
   replaceMenuItem.setText("Replace...");
   replaceMenuItem.setAccelerator (KeyStroke.getKeyStroke (KeyEvent.VK_R,
@@ -2660,17 +2666,17 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
     replaceMenuItemActionPerformed(evt);
   }
   });
-  listMenu.add(replaceMenuItem);
-  listMenu.add(jSeparator10);
+  collectionMenu.add(replaceMenuItem);
+  collectionMenu.add(jSeparator10);
 
-  addReplaceMenuItem.setText("Add/Replace Tag");
+  addReplaceMenuItem.setText("Add/Replace Tag...");
   addReplaceMenuItem.setToolTipText("Add/Replace a tag on all items on which it occurs");
   addReplaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
     public void actionPerformed(java.awt.event.ActionEvent evt) {
       addReplaceMenuItemActionPerformed(evt);
     }
   });
-  listMenu.add(addReplaceMenuItem);
+  collectionMenu.add(addReplaceMenuItem);
 
   flattenTagsMenuItem.setText("Flatten Levels");
   flattenTagsMenuItem.setToolTipText("Remove levels from all tags for each URL, making each level a separate tag, and eliminating any duplicates. ");
@@ -2679,7 +2685,7 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
       flattenTagsMenuItemActionPerformed(evt);
     }
   });
-  listMenu.add(flattenTagsMenuItem);
+  collectionMenu.add(flattenTagsMenuItem);
 
   lowerCaseTagsMenuItem.setText("Lower Case");
   lowerCaseTagsMenuItem.setToolTipText("Change all capital letters in tags to lower case");
@@ -2688,18 +2694,18 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
       lowerCaseTagsMenuItemActionPerformed(evt);
     }
   });
-  listMenu.add(lowerCaseTagsMenuItem);
-  listMenu.add(jSeparator3);
+  collectionMenu.add(lowerCaseTagsMenuItem);
+  collectionMenu.add(jSeparator3);
 
-  validateURLsMenuItem.setText("Validate URLs...");
+  validateURLsMenuItem.setText("Validate Links...");
   validateURLsMenuItem.addActionListener(new java.awt.event.ActionListener() {
     public void actionPerformed(java.awt.event.ActionEvent evt) {
       validateURLsMenuItemActionPerformed(evt);
     }
   });
-  listMenu.add(validateURLsMenuItem);
+  collectionMenu.add(validateURLsMenuItem);
 
-  mainMenuBar.add(listMenu);
+  mainMenuBar.add(collectionMenu);
 
   noteMenu.setText("Note");
 
@@ -3029,6 +3035,7 @@ private void helpHistoryMenuItemActionPerformed(java.awt.event.ActionEvent evt) 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
   private javax.swing.JMenuItem addReplaceMenuItem;
+  private javax.swing.JMenu collectionMenu;
   private javax.swing.JTabbedPane collectionTabbedPane;
   private javax.swing.JLabel commentsLabel;
   private javax.swing.JScrollPane commentsScrollPane;
@@ -3055,7 +3062,7 @@ private void helpHistoryMenuItemActionPerformed(java.awt.event.ActionEvent evt) 
   private javax.swing.JMenuItem importMenuItem;
   private javax.swing.JSeparator jSeparator1;
   private javax.swing.JPopupMenu.Separator jSeparator10;
-  private javax.swing.JSeparator jSeparator2;
+  private javax.swing.JPopupMenu.Separator jSeparator2;
   private javax.swing.JSeparator jSeparator3;
   private javax.swing.JSeparator jSeparator4;
   private javax.swing.JSeparator jSeparator5;
@@ -3066,7 +3073,6 @@ private void helpHistoryMenuItemActionPerformed(java.awt.event.ActionEvent evt) 
   private javax.swing.JButton launchButton;
   private javax.swing.JPanel linkPanel;
   private javax.swing.JTextArea linkText;
-  private javax.swing.JMenu listMenu;
   private javax.swing.JPanel listPanel;
   private javax.swing.JMenuItem lowerCaseTagsMenuItem;
   private javax.swing.JMenuBar mainMenuBar;
