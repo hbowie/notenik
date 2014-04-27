@@ -771,8 +771,9 @@ public int checkTags (String find, String replace) {
       } else {
         JOptionPane.showMessageDialog(this,
             notFoundMessage,
-            "OK",
-            JOptionPane.WARNING_MESSAGE);
+            "Not Found",
+            JOptionPane.WARNING_MESSAGE,
+            Home.getShared().getIcon());
         noFindInProgress();
         lastTextFound = "";
         statusBar.setStatus(notFoundMessage);
