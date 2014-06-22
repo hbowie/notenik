@@ -366,6 +366,9 @@ public class NotenikMainFrame
       Home.getShared().ensureProgramDefaultDataFolder();
       if (defaultDataFolder.exists()) {
         openFile (defaultDataFolder);
+        if (noteList.size() == 0) {
+          addFirstNote();
+        }
       } else {
         newFile();
         saveFileAs(defaultDataFolder);
