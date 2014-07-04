@@ -5,8 +5,3 @@
 
     Initial release of Notenik.
 
-
-
-
-
-
