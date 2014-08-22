@@ -307,6 +307,8 @@ Favorites Columns
 Favorites Rows
 :    Specify the maximum number of rows you wish to appear on the Favorites page.
 
+
+
 [java]:       http://www.java.com/
 [pspub]:      http://www.powersurgepub.com/
 [downloads]:  http://www.powersurgepub.com/downloads.html
