@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 - 2013 Herb Bowie
+ * Copyright 2009 - 2014 Herb Bowie
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,6 +42,7 @@ public class PrefsWindow
   private WebPrefs          webPrefs;
   private FavoritesPrefs    favoritesPrefs;
   private FilePrefs         filePrefs = null;
+  private FolderSyncPrefs   folderSyncPrefs;
   
   /** Creates new form PrefsWindow */
   public PrefsWindow(NotenikMainFrame mainFrame) {
@@ -61,12 +62,26 @@ public class PrefsWindow
     favoritesPrefs = new FavoritesPrefs (mainFrame);
     prefsTabs.addTab("Favorites", favoritesPrefs);
     
+    folderSyncPrefs = new FolderSyncPrefs (mainFrame);
+    prefsTabs.addTab("Folder Sync", folderSyncPrefs);
+    
     setupComplete = true;
   }
   
   public void setFilePrefs(FilePrefs filePrefs) {
     this.filePrefs = filePrefs;
     prefsTabs.addTab("Files", filePrefs);
+  }
+  
+  /**
+   Keep track of the current file spec. 
+  
+   @param currentSpec 
+  */
+  public void setCollection (FileSpec currentSpec) {
+    if (folderSyncPrefs != null) {
+      folderSyncPrefs.setCollection(currentSpec);
+    }
   }
 
   public void savePrefs() {
@@ -76,6 +91,7 @@ public class PrefsWindow
     if (filePrefs != null) {
       filePrefs.savePrefs();
     }
+    folderSyncPrefs.savePrefs();
   }
   
   public WebPrefs getWebPrefs() {
@@ -84,6 +100,10 @@ public class PrefsWindow
 
   public FavoritesPrefs getFavoritesPrefs() {
     return favoritesPrefs;
+  }
+  
+  public FolderSyncPrefs getFolderSyncPrefs() {
+    return folderSyncPrefs;
   }
   
   public JTabbedPane getPrefsTabs() {

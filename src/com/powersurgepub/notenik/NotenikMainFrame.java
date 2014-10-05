@@ -24,6 +24,7 @@ package com.powersurgepub.notenik;
   import com.powersurgepub.psdatalib.notenik.*;
   import com.powersurgepub.psdatalib.pslist.*;
   import com.powersurgepub.psdatalib.tabdelim.*;
+  import com.powersurgepub.psdatalib.txbio.*;
   import com.powersurgepub.pspub.*;
   import com.powersurgepub.psutils.*;
   import com.powersurgepub.urlvalidator.*;
@@ -57,7 +58,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "1.00";
+  public static final String PROGRAM_VERSION = "1.10";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -178,6 +179,9 @@ public class NotenikMainFrame
   private             LinkTweaker         linkTweaker;
   private             TweakerPrefs        tweakerPrefs;
   private             LinkLabel           linkLabel;
+  
+  private             FolderSyncPrefs     folderSyncPrefs;
+  private             String              oldTitle = "";
 
   /** Creates new form NotenikMainFrame */
   public NotenikMainFrame() {
@@ -209,6 +213,7 @@ public class NotenikMainFrame
     // Initialize user preferences
     userPrefs = UserPrefs.getShared();
     prefsWindow = new PrefsWindow (this);
+    folderSyncPrefs = prefsWindow.getFolderSyncPrefs();
     
     webPrefs = prefsWindow.getWebPrefs();
     
@@ -429,9 +434,21 @@ public class NotenikMainFrame
     modified = false;
   }
   
+  /**
+   Saves a note in its primary location and in its sync folder, if specified. 
+  
+   @param note The note to be saved. 
+  */
   private void saveNote(Note note) {
     try {
       noteIO.save(note, true);
+      if (folderSyncPrefs.getSync()) {
+        noteIO.saveToSyncFolder(
+            folderSyncPrefs.getSyncFolder(), 
+            folderSyncPrefs.getSyncPrefix(), 
+            note);
+        note.setSynced(true);
+      }
     } catch (IOException e) {
       ioException(e);
     }
@@ -489,6 +506,13 @@ public class NotenikMainFrame
           trouble.report(
               "Unable to delete note at " + position.getNote().getFileName(), 
               "Delete Failure");
+        }
+        if (folderSyncPrefs.getSync()) {
+          File syncFile = noteIO.getSyncFile(
+              folderSyncPrefs.getSyncFolder(), 
+              folderSyncPrefs.getSyncPrefix(), 
+              noteToDelete.getTitle());
+          syncFile.delete();
         }
         noteList.fireTableDataChanged();
         positionAndDisplay();
@@ -1056,6 +1080,7 @@ public int checkTags (String find, String replace) {
     }
     fileName = note.getFileName();
     titleText.setText (note.getTitle());
+    oldTitle = note.getTitle();
     linkText.setText (note.getLinkAsString());
     tagsTextSelector.setText (note.getTagsAsString());
     commentsText.setText (note.getBody());
@@ -1093,6 +1118,7 @@ public int checkTags (String find, String replace) {
 
     Note note = position.getNote();
     if (! note.equalsTitle (titleText.getText())) {
+      oldTitle = note.getTitle();
       note.setTitle (titleText.getText());
       modified = true;
     }
@@ -1140,6 +1166,13 @@ public int checkTags (String find, String replace) {
         if (! newDiskLocation.equals(oldDiskLocation)) {
           File oldDiskFile = new File (oldDiskLocation);
           oldDiskFile.delete();
+          if (folderSyncPrefs.getSync()) {
+            File oldSyncFile = noteIO.getSyncFile(
+                folderSyncPrefs.getSyncFolder(), 
+                folderSyncPrefs.getSyncPrefix(), 
+                oldTitle);
+            oldSyncFile.delete();
+          }
         }
         if (position.isNewNote()) {
           if (note.hasKey()) {
@@ -1313,6 +1346,9 @@ public int checkTags (String find, String replace) {
     setNoteFile (fileToOpen);
     try {
       noteIO.load(noteList);
+      if (folderSyncPrefs.getSync()) {
+        syncWithFolder();
+      }
     } catch (IOException e) {
       ioException(e);
     }
@@ -1364,6 +1400,155 @@ public int checkTags (String find, String replace) {
     recDef.addColumn(Note.TAGS_DEF);
     recDef.addColumn(Note.LINK_DEF);
     recDef.addColumn(Note.BODY_DEF);
+  }
+  
+  /**
+   Sync the list with a Notational Velocity style folder. 
+  
+   @return True if everything went OK. 
+  */
+  public boolean syncWithFolder () {
+    
+    boolean ok = true;
+    StringBuilder msgs = new StringBuilder();
+    
+    String syncFolderString = folderSyncPrefs.getSyncFolder();
+    String syncPrefix = folderSyncPrefs.getSyncPrefix();
+    boolean sync = folderSyncPrefs.getSync();
+    File syncFolder = null;
+    
+    // Check to see if we have the info we need to do a sync
+    if (syncFolderString == null
+        || syncFolderString.length() == 0
+        || syncPrefix == null
+        || syncPrefix.length() == 0
+        || (! sync)) {
+      ok = false;
+    }
+    
+    if (ok) {
+      syncFolder = new File (syncFolderString);
+      if (syncFolder.exists()
+          && syncFolder.isDirectory()
+          && syncFolder.canRead()) {
+      } else {
+        Trouble.getShared().report(
+            this, 
+            "Trouble reading from folder: " + syncFolder.toString(), 
+            "Problem with Sync Folder");
+        ok = false;
+      }
+    }
+    
+    int synced = 0;
+    int added = 0;
+    int addedToSyncFolder = 0;
+    
+    if (ok) {  
+      
+      // Now go through the items on the list and mark them all as unsynced
+      Note workNote;
+      for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
+        workNote = noteList.get (workIndex);
+        workNote.setSynced(false);
+      }
+
+      // Now match directory entries in the folder with items on the list
+      DirectoryReader directoryReader = new DirectoryReader (syncFolder);
+      directoryReader.setLog (Logger.getShared());
+      try {
+        directoryReader.openForInput();
+        while (! directoryReader.isAtEnd()) {
+          File nextFile = directoryReader.nextFileIn();
+          FileName nextFileName = new FileName(nextFile);
+          if ((nextFile != null) 
+              && (! nextFile.getName().startsWith ("."))
+              && nextFile.exists()
+              && NoteIO.isInterestedIn(nextFile)
+              && nextFile.getName().startsWith(syncPrefix)
+              && nextFileName.getBase().length() > syncPrefix.length()) {
+            String fileNameBase = nextFileName.getBase();
+            String nextTitle 
+                = fileNameBase.substring(syncPrefix.length()).trim();
+            int i = 0;
+            boolean found = false;
+            while (i < noteList.size() && (! found)) {
+              workNote = noteList.get(i);
+              found = (workNote.getTitle().equals(nextTitle));
+              if (found) {
+                workNote.setSynced(true);
+                Date lastModDate = new Date (nextFile.lastModified());
+                if (lastModDate.compareTo(workNote.getLastModDate()) > 0) {
+                  Note syncNote = noteIO.getNote(nextFile, syncPrefix);
+                  msgs.append(
+                      "Note updated to match more recent info from sync folder for "
+                      + syncNote.getTitle()
+                      + "\n");
+                  workNote.setTags(syncNote.getTagsAsString());
+                  workNote.setLink(syncNote.getLinkAsString());
+                  workNote.setBody(syncNote.getBody());
+                  noteIO.save(syncNote, true);
+                }
+                synced++;
+              } else {
+                i++;
+              }
+            } // end while looking for a matching note
+            if ((! found)) {
+              // Add new nvAlt note to Notenik collection
+              Note syncNote = noteIO.getNote(nextFile, syncPrefix);
+              syncNote.setLastModDateToday();
+              try {
+                noteIO.save(syncNote, true);
+                position = noteList.add (syncNote);
+              } catch (IOException e) {
+                ioException(e);
+              }
+            }
+          } // end if file exists, can be read, etc.
+        } // end while more files in sync folder
+        directoryReader.close();
+      } catch (IOException ioe) {
+        Trouble.getShared().report(this, 
+            "Trouble reading sync folder: " + syncFolder.toString(), 
+            "Sync Folder access problems");
+        ok = false;
+      } // end if caught I/O Error
+    }
+      
+    if (ok) {
+      msgs.append(String.valueOf(added) + " "
+          + StringUtils.pluralize("item", added)
+          + " added\n");
+      
+      msgs.append(String.valueOf(synced)  + " existing "
+          + StringUtils.pluralize("item", synced)
+          + " synced\n");
+      
+      // Now add any unsynced notes to the sync folder
+      Note workNote;
+      for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
+        workNote = noteList.get(workIndex);
+        if (! workNote.isSynced()) {
+          workNote.setLastModDateToday();
+          saveNote(workNote);
+          msgs.append("Added to Sync Folder " + workNote.getTitle() + "\n");
+          addedToSyncFolder++;
+        }
+      } // end of list of notes
+      msgs.append(String.valueOf(addedToSyncFolder) + " "
+          + StringUtils.pluralize("note", addedToSyncFolder)
+          + " added to sync folder\n");
+      msgs.append("Folder Sync Completed!\n");
+    }
+    
+    if (ok) {
+      logger.recordEvent (LogEvent.NORMAL,
+        msgs.toString(),
+        false);
+    }
+    return ok;
+      
   }
 
   private void importFile () {
@@ -1633,6 +1818,7 @@ public int checkTags (String find, String replace) {
 
    */
   private void setNoteFile (File file) {
+    
     if (file == null) {
       noteFile = null;
       noteIO = null;
@@ -1653,6 +1839,7 @@ public int checkTags (String find, String replace) {
       statusBar.setFileName(fileName);
       publishWindow.openSource(currentDirectory);
     }
+    prefsWindow.setCollection(currentFileSpec);
   }
 
   public void displayPublishWindow() {
@@ -2469,6 +2656,7 @@ public int checkTags (String find, String replace) {
     commentsText.setColumns(20);
     commentsText.setLineWrap(true);
     commentsText.setRows(5);
+    commentsText.setTabSize(2);
     commentsText.setWrapStyleWord(true);
     commentsScrollPane.setViewportView(commentsText);
 

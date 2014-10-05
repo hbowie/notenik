@@ -67,8 +67,14 @@
         <li>
           <a href="#favorites-prefs">Favorites Prefs</a>
         </li>
+        <li>
+          <a href="#folder-sync-prefs">Folder Sync Prefs</a>
+        </li>
       </ul>
 
+    </li>
+    <li>
+      <a href="#help">Help</a>
     </li>
   </ul>
 
@@ -306,6 +312,45 @@ Favorites Columns
 
 Favorites Rows
 :    Specify the maximum number of rows you wish to appear on the Favorites page.
+
+<h3 id="folder-sync-prefs">Folder Sync Prefs</h3>
+
+
+The Folder Sync application prefs pane allow the user to identify a common folder to which several different Notenik collections can be synced.
+
+The common folder may then be conveniently accessed using nvAlt.
+
+Each collection can have a different prefix assigned, and that prefix will then be used to keep the notes from the different collections separately identified within the common nvAlt folder. The prefix will default to the folder name for the collection, with a trailing 's' removed if one is found, and with a dash added as a separator. A folder name of 'Bookmarks', for example, would result in a prefix of 'Bookmark - ' being appended to the front of each note as it is stored in the common folder.
+
+The logic for the syncing works as follows.
+
+A sweep of the entire common folder will be performed whenever syncing is first turned on for a collection, and henceforth whenever a collection with syncing already on is opened.
+
+The sweep sync includes the following logic.
+
+* For any nvAlt notes with a matching prefix, where the corresponding note does not already exist within the Notenik collection, the note will be added to the Notenik collection.
+
+* For any Notenik notes where a matching nvAlt note is not found, the note will be added to the nvAlt folder.
+
+* For any Notenik notes where a matching nvAlt note has been updated more recently than the matching Notenik note, the Notenik note will be updated to match the nvAlt note.
+
+Once folder sync has been turned on for a collection, then every time that Notenik makes an update to any note within that collection, a parallel update will be made to the corresponding note within the common folder.
+
+
+<h2 id="help">Help</h2>
+
+
+The following commands are available. Note that the first two commands open local documentation installed with your application, while the next group of commands will access the Internet and access the latest program documentation, where applicable.
+
+* **Program History** -- Opens the program's version history in your preferred Web browser.
+
+* **User Guide** -- Opens the program's user guide in your preferred Web browser.
+
+* **Check for Updates** -- Checks the PowerSurgePub web site to see if you're running the latest version of the application.
+
+* **Notenik Home Page** -- Open's the Notenik product page on the World-Wide Web.
+
+* **Reduce Window Size** -- Restores the main Notenik window to its default size and location. Note that this command has a shortcut so that it may be executed even when the Notenik window is not visible. This command may sometimes prove useful if you use multiple monitors, but occasionally in different configurations. On Windows in particular, this sometimes results in Notenik opening on a monitor that is no longer present, making it difficult to see.
 
 
 
