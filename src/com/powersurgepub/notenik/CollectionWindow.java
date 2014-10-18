@@ -63,7 +63,7 @@ public class CollectionWindow
   /** Creates new form CollectionWindow */
   public CollectionWindow() {
     recDef = new RecordDefinition();
-    recDef.addColumn(Note.TITLE_DEF);
+    recDef.addColumn(NoteFactory.TITLE_DEF);
     recDef.addColumn(SECONDARY_LOCATION_DEF);
     recDef.addColumn(SECONDARY_PREFIX_DEF);
     initComponents();
@@ -95,8 +95,6 @@ public class CollectionWindow
       if (io.exists(parmsNote)) {
         try {
           parmsNote = io.getNote(parmsNote.getFileName());
-          // DataField secondaryLocationField = parmsNote.getField(SECONDARY_LOCATION);
-          // String secondaryLocationData = secondaryLocationField.getData();
           secondaryLocationText.setText
               (parmsNote.getField(SECONDARY_LOCATION).getData());
           secondaryLocationPrefixText.setText

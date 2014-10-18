@@ -1085,7 +1085,7 @@ public int checkTags (String find, String replace) {
     tagsTextSelector.setText (note.getTagsAsString());
     commentsText.setText (note.getBody());
     commentsText.setCaretPosition(0);
-    lastModDateText.setText (note.getLastModDate(Note.COMPLETE_FORMAT));
+    lastModDateText.setText (note.getLastModDate(NoteFactory.COMPLETE_FORMAT));
     statusBar.setPosition(position.getIndexForDisplay(), noteList.size());
     modified = false;
   }
@@ -1396,10 +1396,10 @@ public int checkTags (String find, String replace) {
   private void initRecDef() {
     dict = new DataDictionary();
     recDef = new RecordDefinition(dict);
-    recDef.addColumn(Note.TITLE_DEF);
-    recDef.addColumn(Note.TAGS_DEF);
-    recDef.addColumn(Note.LINK_DEF);
-    recDef.addColumn(Note.BODY_DEF);
+    recDef.addColumn(NoteFactory.TITLE_DEF);
+    recDef.addColumn(NoteFactory.TAGS_DEF);
+    recDef.addColumn(NoteFactory.LINK_DEF);
+    recDef.addColumn(NoteFactory.BODY_DEF);
   }
   
   /**
