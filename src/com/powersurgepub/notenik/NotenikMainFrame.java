@@ -20,6 +20,7 @@ package com.powersurgepub.notenik;
   import com.powersurgepub.psfiles.*;
   import com.powersurgepub.psdatalib.ui.*;
   import com.powersurgepub.psdatalib.psdata.*;
+  import com.powersurgepub.psdatalib.psdata.widgets.*;
   import com.powersurgepub.psdatalib.pstags.*;
   import com.powersurgepub.psdatalib.notenik.*;
   import com.powersurgepub.psdatalib.pslist.*;
@@ -123,13 +124,20 @@ public class NotenikMainFrame
   // GUI Elements
   private             TextSelector        tagsTextSelector;
   private             TagTreeCellRenderer treeCellRenderer;
+  private             DataWidget          linkText = null;
 
   private             NotePositioned      position = null;
   private             boolean             modified = false;
   private             boolean             unsavedChanges = false;
+  
+  /** This is the current collection of Notes. */
   private             NoteList            noteList = null;
+  
+  // The following fields define the fields in the collection. 
   private             DataDictionary      dict = null;
   private             RecordDefinition    recDef = null;
+  private             ArrayList<DataWidget> widgets = new ArrayList<DataWidget>();
+  
   private             XFileChooser        fileChooser = new XFileChooser();
 
   /** File of Notes that is currently open. */
@@ -178,7 +186,12 @@ public class NotenikMainFrame
   
   private             LinkTweaker         linkTweaker;
   private             TweakerPrefs        tweakerPrefs;
+  
+  // private             JPanel              notePanel;
   private             LinkLabel           linkLabel;
+  
+  private             JLabel              lastModDateLabel;
+  private             JLabel              lastModDateText;
   
   private             FolderSyncPrefs     folderSyncPrefs;
   private             String              oldTitle = "";
@@ -193,9 +206,6 @@ public class NotenikMainFrame
     home = Home.getShared ();
     programVersion = ProgramVersion.getShared ();
     initComponents();
-    linkLabel = new LinkLabel("Link:");
-    linkLabel.setLinkTextArea(linkText);
-    linkLabel.setFrame(this);
     
     getContentPane().add(statusBar, java.awt.BorderLayout.SOUTH);
     WindowMenuManager.getShared(windowMenu);
@@ -240,40 +250,7 @@ public class NotenikMainFrame
     initRecDef();
     noteList = new NoteList(recDef);
     position = new NotePositioned(recDef);
-
-    // Use special text selector for the tags
-    tagsTextSelector = new TextSelector();
-    tagsTextSelector.setEditable(true);
-    tagsTextSelector.addActionListener(new java.awt.event.ActionListener() {
-      public void actionPerformed(java.awt.event.ActionEvent evt) {
-        tagsActionPerformed(evt);
-      }
-    });
-    java.awt.GridBagConstraints gridBagConstraints;
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 2;
-    gridBagConstraints.gridy = 2;
-    gridBagConstraints.gridwidth = 1;
-    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-    gridBagConstraints.ipadx = 2;
-    gridBagConstraints.ipady = 2;
-    gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-    gridBagConstraints.weightx = 1.0;
-    gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
-    linkPanel.add(tagsTextSelector, gridBagConstraints);
-    tagsTextSelector.setValueList(noteList.getTagsList());
-    
-    gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 3;
-    gridBagConstraints.gridwidth = 2;
-    gridBagConstraints.fill = java.awt.GridBagConstraints.NONE;
-    gridBagConstraints.ipadx = 2;
-    gridBagConstraints.ipady = 2;
-    gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-    gridBagConstraints.weightx = 0.0;
-    gridBagConstraints.weighty = 0.0;
-    gridBagConstraints.insets = new java.awt.Insets(8, 8, 8, 8);
-    linkPanel.add(linkLabel, gridBagConstraints);
+    buildNoteTabs();
 
     // Set initial UI prefs
     setBounds (
@@ -322,7 +299,6 @@ public class NotenikMainFrame
     replaceWindow = new ReplaceWindow(this);
     
     linkTweaker = new LinkTweaker(this, prefsWindow.getPrefsTabs());
-    linkLabel.setLinkTweaker(linkTweaker);
 
     // Get System Properties
     userName = System.getProperty ("user.name");
@@ -1079,12 +1055,36 @@ public int checkTags (String find, String replace) {
       reload (note);
     }
     fileName = note.getFileName();
-    titleText.setText (note.getTitle());
-    oldTitle = note.getTitle();
-    linkText.setText (note.getLinkAsString());
-    tagsTextSelector.setText (note.getTagsAsString());
-    commentsText.setText (note.getBody());
-    commentsText.setCaretPosition(0);
+    
+    if (widgets != null && widgets.size() == recDef.getNumberOfFields()) {
+      for (int i = 0; i < recDef.getNumberOfFields(); i++) {
+        DataFieldDefinition fieldDef = recDef.getDef(i);
+        String fieldName = fieldDef.getProperName();
+        DataWidget widget = widgets.get(i);
+        if (fieldName.equalsIgnoreCase(NoteParms.TITLE_FIELD_NAME)) {
+          widget.setText(note.getTitle());
+          oldTitle = note.getTitle();
+        }
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.LINK_FIELD_NAME)) {
+          widget.setText(note.getLinkAsString());
+        }
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.TAGS_FIELD_NAME)) {
+          widget.setText(note.getTagsAsString());
+        }
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.BODY_FIELD_NAME)) {
+          widget.setText(note.getBody());
+        } 
+        else {
+          DataField nextField = note.getField(i);
+          widget.setText(nextField.getData());
+        }
+
+      } // end for each data field
+    }
+    
     lastModDateText.setText (note.getLastModDate(NoteParms.COMPLETE_FORMAT));
     statusBar.setPosition(position.getIndexForDisplay(), noteList.size());
     modified = false;
@@ -1117,30 +1117,50 @@ public int checkTags (String find, String replace) {
     boolean modOK = true;
 
     Note note = position.getNote();
-    if (! note.equalsTitle (titleText.getText())) {
-      oldTitle = note.getTitle();
-      note.setTitle (titleText.getText());
-      modified = true;
-    }
-
-    if ((linkText.getText().equals (note.getLinkAsString()))
-        || ((linkText.getText().length() == 0) && note.blankLink())) {
-      // No change
-    } else {
-      note.setLink (linkText.getText());
-      modified = true;
-    }
-
-    if (! note.equalsTags (tagsTextSelector.getText())) {
-      note.setTags (tagsTextSelector.getText());
-      modified = true;
-    }
-
-    if (! commentsText.getText().equals (note.getBody())) {
-      note.setBody (commentsText.getText());
-      modified = true;
-    }
     
+    for (int i = 0; i < recDef.getNumberOfFields(); i++) {
+      DataFieldDefinition fieldDef = recDef.getDef(i);
+      String fieldName = fieldDef.getProperName();
+      DataWidget widget = widgets.get(i);
+      if (fieldName.equalsIgnoreCase(NoteParms.TITLE_FIELD_NAME)) {
+        if (! note.equalsTitle (widget.getText())) {
+          oldTitle = note.getTitle();
+          note.setTitle (widget.getText());
+          modified = true;
+        }
+      }
+      else
+      if (fieldName.equalsIgnoreCase(NoteParms.LINK_FIELD_NAME)) {
+        if ((widget.getText().equals (note.getLinkAsString()))
+            || ((widget.getText().length() == 0) && note.blankLink())) {
+          // No change
+        } else {
+          note.setLink (widget.getText());
+          modified = true;
+        }
+      }
+      else
+      if (fieldName.equalsIgnoreCase(NoteParms.TAGS_FIELD_NAME)) {
+        if (! note.equalsTags (widget.getText())) {
+          note.setTags (widget.getText());
+          modified = true;
+        }
+      }
+      else
+      if (fieldName.equalsIgnoreCase(NoteParms.BODY_FIELD_NAME)) {
+        if (! widget.getText().equals (note.getBody())) {
+          note.setBody (widget.getText());
+          modified = true;
+        }
+      } 
+      else {
+        DataField nextField = note.getField(i);
+        if (! widget.getText().equals(nextField.getData())) {
+          note.storeField(fieldName, widget.getText());
+          modified = true;
+        } // end if generic field has been changed
+      } // end if generic field
+    } // end for each field
     
     if (modified) {
       String newFileName = note.getFileName();
@@ -1352,12 +1372,65 @@ public int checkTags (String find, String replace) {
     } catch (IOException e) {
       ioException(e);
     }
+    buildNoteTabs();
     collectionWindow.newNoteFolder(noteList, noteIO);
     noteList.fireTableDataChanged();
     position = new NotePositioned (recDef);
     setPreferredCollectionView();
     position = noteList.first(position);
     positionAndDisplay();
+  }
+  
+  /**
+   Build the user interface to view and update one note. 
+  */
+  private void buildNoteTabs() {
+    
+    linkText = null;
+    JPanel notePanel = new JPanel();
+    notePanel.setLayout(new GridBagLayout());
+    widgets = new ArrayList();
+    GridBagger gb = new GridBagger();
+		gb.startLayout (notePanel, 2, 99);
+		gb.setAllInsets (4);
+		gb.setDefaultRowWeight (0.0);
+		
+    WidgetWithLabel widgetWithLabel = new WidgetWithLabel();
+    for (int i = 0; i < recDef.getNumberOfFields(); i++) {
+      DataFieldDefinition fieldDef = recDef.getDef(i);
+      widgetWithLabel = NoteParms.getWidgetWithLabel(fieldDef, this, gb); 
+      
+      switch (fieldDef.getType()) {
+        // Special processing for Tags
+        case (DataFieldDefinition.TAGS_TYPE):
+          tagsTextSelector = (TextSelector)widgetWithLabel.getWidget();
+          tagsTextSelector.setValueList(noteList.getTagsList());
+          tagsTextSelector.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+              tagsActionPerformed(evt);
+            }
+          });
+          break;
+        case (DataFieldDefinition.LINK_TYPE):
+          linkText = widgetWithLabel.getWidget();
+          linkLabel = (LinkLabel)widgetWithLabel.getLabel();
+          linkLabel.setLinkTweaker(linkTweaker);
+          break;
+      }
+      
+      widgets.add(widgetWithLabel.getWidget());
+
+    } // end for each data field
+    
+    lastModDateLabel = new javax.swing.JLabel();
+    lastModDateText = new javax.swing.JLabel();
+    lastModDateLabel.setLabelFor(lastModDateText);
+    lastModDateLabel.setText("Mod Date:");
+    lastModDateText.setText("  ");
+    gb.add(lastModDateLabel);
+    gb.add(lastModDateText);
+    
+    mainSplitPane.setRightComponent(notePanel);
   }
 
   private void savePreferredCollectionView () {
@@ -1767,6 +1840,7 @@ public int checkTags (String find, String replace) {
   public void newFile() {
     closeFile();
     initCollection();
+    buildNoteTabs();
  
     fileChooser.setDialogTitle ("Select Folder for New Note Collection");
     fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
@@ -2309,7 +2383,6 @@ public int checkTags (String find, String replace) {
     @SuppressWarnings("unchecked")
   // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
   private void initComponents() {
-    java.awt.GridBagConstraints gridBagConstraints;
 
     mainToolBar = new javax.swing.JToolBar();
     urlOKButton = new javax.swing.JButton();
@@ -2330,17 +2403,6 @@ public int checkTags (String find, String replace) {
     treePanel = new javax.swing.JPanel();
     treeScrollPane = new javax.swing.JScrollPane();
     noteTree = new javax.swing.JTree();
-    linkPanel = new javax.swing.JPanel();
-    titleLabel = new javax.swing.JLabel();
-    titleText = new javax.swing.JTextField();
-    urlScrollPane = new javax.swing.JScrollPane();
-    linkText = new javax.swing.JTextArea();
-    tagsLabel = new javax.swing.JLabel();
-    commentsLabel = new javax.swing.JLabel();
-    commentsScrollPane = new javax.swing.JScrollPane();
-    commentsText = new javax.swing.JTextArea();
-    lastModDateLabel = new javax.swing.JLabel();
-    lastModDateText = new javax.swing.JLabel();
     mainMenuBar = new javax.swing.JMenuBar();
     fileMenu = new javax.swing.JMenu();
     fileNewMenuItem = new javax.swing.JMenuItem();
@@ -2596,102 +2658,6 @@ public int checkTags (String find, String replace) {
     collectionTabbedPane.addTab("Tags", treePanel);
 
     mainSplitPane.setLeftComponent(collectionTabbedPane);
-
-    linkPanel.setLayout(new java.awt.GridBagLayout());
-
-    titleLabel.setLabelFor(titleText);
-    titleLabel.setText("Title:");
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 0;
-    gridBagConstraints.gridwidth = 2;
-    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-    gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-    gridBagConstraints.insets = new java.awt.Insets(4, 8, 4, 4);
-    linkPanel.add(titleLabel, gridBagConstraints);
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 2;
-    gridBagConstraints.gridy = 0;
-    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-    gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-    gridBagConstraints.weightx = 1.0;
-    gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
-    linkPanel.add(titleText, gridBagConstraints);
-
-    linkText.setColumns(20);
-    linkText.setLineWrap(true);
-    linkText.setRows(2);
-    urlScrollPane.setViewportView(linkText);
-
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 2;
-    gridBagConstraints.gridy = 3;
-    gridBagConstraints.gridheight = 2;
-    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-    gridBagConstraints.weightx = 1.0;
-    gridBagConstraints.insets = new java.awt.Insets(8, 8, 8, 8);
-    linkPanel.add(urlScrollPane, gridBagConstraints);
-
-    tagsLabel.setText("Tags:");
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 2;
-    gridBagConstraints.gridwidth = 2;
-    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-    gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-    gridBagConstraints.insets = new java.awt.Insets(4, 8, 4, 4);
-    linkPanel.add(tagsLabel, gridBagConstraints);
-
-    commentsLabel.setLabelFor(commentsText);
-    commentsLabel.setText("Body:");
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 6;
-    gridBagConstraints.gridwidth = 2;
-    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-    gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-    gridBagConstraints.insets = new java.awt.Insets(4, 8, 4, 4);
-    linkPanel.add(commentsLabel, gridBagConstraints);
-
-    commentsText.setColumns(20);
-    commentsText.setLineWrap(true);
-    commentsText.setRows(5);
-    commentsText.setTabSize(2);
-    commentsText.setWrapStyleWord(true);
-    commentsScrollPane.setViewportView(commentsText);
-
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 2;
-    gridBagConstraints.gridy = 6;
-    gridBagConstraints.gridheight = 2;
-    gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
-    gridBagConstraints.weightx = 1.0;
-    gridBagConstraints.weighty = 0.8;
-    gridBagConstraints.insets = new java.awt.Insets(8, 8, 8, 8);
-    linkPanel.add(commentsScrollPane, gridBagConstraints);
-
-    lastModDateLabel.setLabelFor(commentsText);
-    lastModDateLabel.setText("Mod Date:");
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 8;
-    gridBagConstraints.gridwidth = 2;
-    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-    gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-    gridBagConstraints.insets = new java.awt.Insets(4, 8, 4, 4);
-    linkPanel.add(lastModDateLabel, gridBagConstraints);
-
-    lastModDateText.setLabelFor(commentsText);
-    lastModDateText.setText("  ");
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 2;
-    gridBagConstraints.gridy = 8;
-    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-    gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-    gridBagConstraints.insets = new java.awt.Insets(4, 8, 4, 8);
-    linkPanel.add(lastModDateText, gridBagConstraints);
-
-    mainSplitPane.setRightComponent(linkPanel);
 
     getContentPane().add(mainSplitPane, java.awt.BorderLayout.CENTER);
 
@@ -3128,9 +3094,6 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem addReplaceMenuItem;
   private javax.swing.JMenu collectionMenu;
   private javax.swing.JTabbedPane collectionTabbedPane;
-  private javax.swing.JLabel commentsLabel;
-  private javax.swing.JScrollPane commentsScrollPane;
-  private javax.swing.JTextArea commentsText;
   private javax.swing.JMenuItem deleteMenuItem;
   private javax.swing.JMenuItem deleteNoteMenuItem;
   private javax.swing.JMenu editMenu;
@@ -3154,11 +3117,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JSeparator jSeparator3;
   private javax.swing.JSeparator jSeparator4;
   private javax.swing.JSeparator jSeparator5;
-  private javax.swing.JLabel lastModDateLabel;
-  private javax.swing.JLabel lastModDateText;
   private javax.swing.JButton launchButton;
-  private javax.swing.JPanel linkPanel;
-  private javax.swing.JTextArea linkText;
   private javax.swing.JPanel listPanel;
   private javax.swing.JMenuItem lowerCaseTagsMenuItem;
   private javax.swing.JMenuBar mainMenuBar;
@@ -3179,9 +3138,6 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem replaceMenuItem;
   private javax.swing.JMenuItem saveAllMenuItem;
   private javax.swing.JScrollPane tableScrollPane;
-  private javax.swing.JLabel tagsLabel;
-  private javax.swing.JLabel titleLabel;
-  private javax.swing.JTextField titleText;
   private javax.swing.JMenu toolsMenu;
   private javax.swing.JMenuItem toolsOptionsMenuItem;
   private javax.swing.JPanel treePanel;
@@ -3193,7 +3149,6 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JButton urlNextButton;
   private javax.swing.JButton urlOKButton;
   private javax.swing.JButton urlPriorButton;
-  private javax.swing.JScrollPane urlScrollPane;
   private javax.swing.JMenuItem validateURLsMenuItem;
   private javax.swing.JMenu windowMenu;
   // End of variables declaration//GEN-END:variables
