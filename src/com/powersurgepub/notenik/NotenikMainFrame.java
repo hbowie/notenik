@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 - 2014 Herb Bowie
+ * Copyright 2009 - 2015 Herb Bowie
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "1.10";
+  public static final String PROGRAM_VERSION = "1.20";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -1207,6 +1207,58 @@ public int checkTags (String find, String replace) {
     
     return modOK;
   } // end modIfChanged method
+  
+  /**
+   Try to open the current note in the local app for the file type. 
+  */
+  private void openNote() {
+    boolean ok = modIfChanged();
+    Note noteToOpen = null;
+    File noteFileToOpen = null;
+    String noteTitle = "** Unknown **";
+    Desktop desktop = null;
+    if (position == null) {
+      ok = false;
+    }
+    
+    if (ok) {
+      noteToOpen = position.getNote();
+      if (noteToOpen == null) {
+        ok = false;
+      } else {
+        noteTitle = noteToOpen.getTitle();
+      }
+    }
+    
+    if (ok) {
+      if (noteToOpen.hasDiskLocation()) {
+        noteFileToOpen = new File(noteToOpen.getDiskLocation());
+      } else {
+        ok = false;
+      }
+    }
+    
+    if (ok) {
+      if (! Desktop.isDesktopSupported()) {
+        ok = false;
+      }
+    }
+    
+    if (ok) {
+      desktop = Desktop.getDesktop();
+      try {
+        desktop.open(noteFileToOpen);
+      } catch (IOException e) {
+        ok = false;
+      }
+    }
+    
+    if (! ok) {
+      Logger.getShared().recordEvent (LogEvent.MEDIUM,
+        "Unable to open note for " + noteTitle,
+        false);
+    }
+  }
 
   private void addNoteToList () {
     position = noteList.add (position.getNote());
@@ -2440,6 +2492,7 @@ public int checkTags (String find, String replace) {
     deleteNoteMenuItem = new javax.swing.JMenuItem();
     nextMenuItem = new javax.swing.JMenuItem();
     priorMenuItem = new javax.swing.JMenuItem();
+    openNoteMenuItem = new javax.swing.JMenuItem();
     toolsMenu = new javax.swing.JMenu();
     toolsOptionsMenuItem = new javax.swing.JMenuItem();
     windowMenu = new javax.swing.JMenu();
@@ -2896,6 +2949,16 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
   });
   noteMenu.add(priorMenuItem);
 
+  openNoteMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_T, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+  openNoteMenuItem.setText("Text Edit Note");
+  openNoteMenuItem.setToolTipText("Open Note using local Text Editor");
+  openNoteMenuItem.addActionListener(new java.awt.event.ActionListener() {
+    public void actionPerformed(java.awt.event.ActionEvent evt) {
+      openNoteMenuItemActionPerformed(evt);
+    }
+  });
+  noteMenu.add(openNoteMenuItem);
+
   mainMenuBar.add(noteMenu);
 
   toolsMenu.setText("Tools");
@@ -3088,6 +3151,10 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     exportTabDelim();
   }//GEN-LAST:event_exportTabDelimitedMenuItemActionPerformed
 
+  private void openNoteMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openNoteMenuItemActionPerformed
+    openNote();
+  }//GEN-LAST:event_openNoteMenuItemActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -3129,6 +3196,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JTable noteTable;
   private javax.swing.JTree noteTree;
   private javax.swing.JMenuItem openMenuItem;
+  private javax.swing.JMenuItem openNoteMenuItem;
   private javax.swing.JMenu openRecentMenu;
   private javax.swing.JMenuItem priorMenuItem;
   private javax.swing.JMenuItem propertiesMenuItem;
