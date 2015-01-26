@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 - 2014 Herb Bowie
+ * Copyright 2009 - 2015 Herb Bowie
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package com.powersurgepub.notenik;
 
+  import com.powersurgepub.psdatalib.pstags.*;
   import com.powersurgepub.psdatalib.ui.*;
   import com.powersurgepub.psfiles.*;
   import com.powersurgepub.psutils.*;
@@ -43,6 +44,7 @@ public class PrefsWindow
   private FavoritesPrefs    favoritesPrefs;
   private FilePrefs         filePrefs = null;
   private FolderSyncPrefs   folderSyncPrefs;
+  private TagsPrefs         tagsPrefs;
   
   /** Creates new form PrefsWindow */
   public PrefsWindow(NotenikMainFrame mainFrame) {
@@ -64,6 +66,9 @@ public class PrefsWindow
     
     folderSyncPrefs = new FolderSyncPrefs (mainFrame);
     prefsTabs.addTab("Folder Sync", folderSyncPrefs);
+    
+    tagsPrefs = new TagsPrefs();
+    prefsTabs.addTab ("Tags Export", tagsPrefs);
     
     setupComplete = true;
   }
@@ -104,6 +109,10 @@ public class PrefsWindow
   
   public FolderSyncPrefs getFolderSyncPrefs() {
     return folderSyncPrefs;
+  }
+  
+  public TagsPrefs getTagsPrefs() {
+    return tagsPrefs;
   }
   
   public JTabbedPane getPrefsTabs() {

@@ -59,7 +59,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "1.20";
+  public static final String PROGRAM_VERSION = "1.31";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -104,6 +104,9 @@ public class NotenikMainFrame
   
   // Replace Window
   private             ReplaceWindow       replaceWindow;
+  
+  // File Info Window
+  private             FileInfoWindow      fileInfoWindow;
 
   // Variables used for logging
   private             Logger              logger = Logger.getShared();
@@ -195,6 +198,10 @@ public class NotenikMainFrame
   
   private             FolderSyncPrefs     folderSyncPrefs;
   private             String              oldTitle = "";
+  
+  private static final String[] EXPORT_TYPE = {"Notenik", "Tab-Delimited"};
+  private static final int NOTENIK_EXPORT = 0;
+  private static final int TABDELIM_EXPORT = 1;
 
   /** Creates new form NotenikMainFrame */
   public NotenikMainFrame() {
@@ -299,6 +306,8 @@ public class NotenikMainFrame
     replaceWindow = new ReplaceWindow(this);
     
     linkTweaker = new LinkTweaker(this, prefsWindow.getPrefsTabs());
+    
+    fileInfoWindow = new FileInfoWindow();
 
     // Get System Properties
     userName = System.getProperty ("user.name");
@@ -439,7 +448,7 @@ public class NotenikMainFrame
 
     if (modOK) {
       Note note = position.getNote();
-      Note newNote = note.duplicate();
+      Note newNote = new Note(note);
       newNote.setTitle(note.getTitle() + " copy");
       position = new NotePositioned(recDef);
       position.setIndex (noteList.size());
@@ -526,6 +535,7 @@ public class NotenikMainFrame
       if (! before.equals (workNote.getNote().getTags().toString())) {
         mods++;
         noteList.modify(workNote);
+        saveNote(workNote.getNote());
       }
     }
 
@@ -1479,6 +1489,7 @@ public int checkTags (String find, String replace) {
     lastModDateLabel.setLabelFor(lastModDateText);
     lastModDateLabel.setText("Mod Date:");
     lastModDateText.setText("  ");
+    NoteParms.setDefaultLabelConstraints(gb);
     gb.add(lastModDateLabel);
     gb.add(lastModDateText);
     
@@ -1515,6 +1526,7 @@ public int checkTags (String find, String replace) {
     treeCellRenderer = new TagTreeCellRenderer ();
     noteTree.setCellRenderer (treeCellRenderer);
     noteTree.doLayout();
+    prefsWindow.getTagsPrefs().setTagsValueList(noteList.getTagsList());
     // setUnsavedChanges(false);
   }
   
@@ -1703,97 +1715,151 @@ public int checkTags (String find, String replace) {
     firstNote();
   }
   
-  private void exportToNoteNik() {
-    boolean modOK = modIfChanged();
-    int exported = 0;
-    if (modOK) {
-      fileChooser.setDialogTitle ("Export to NoteNik");
-      fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-      File selectedFile = fileChooser.showSaveDialog(this);
-      if (selectedFile != null
-          && selectedFile.isDirectory()
-          && selectedFile.canWrite()) {
-        File exportFolder = selectedFile;
-        NoteIO exportWriter = new NoteIO(recDef, exportFolder);
-        Note workNote;
-        try {
-          for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
-            workNote = noteList.get (workIndex);
-            exportWriter.save (workNote, false);
-          }
-          JOptionPane.showMessageDialog(this,
-                String.valueOf(noteList.size()) + " Notes exported successfully to"
-                  + GlobalConstants.LINE_FEED
-                  + selectedFile.toString(),
-                "Export Results",
-                JOptionPane.INFORMATION_MESSAGE,
-                Home.getShared().getIcon());
-            logger.recordEvent (LogEvent.NORMAL, String.valueOf(noteList.size()) 
-                + " Notes exported to " 
-                + selectedFile.toString(),
-                false);
-            statusBar.setStatus(String.valueOf(noteList.size()) 
-              + " Notes exported");
-        } catch (IOException e) {
-          Trouble.getShared().report(this, 
-              "I/O Error exporting to NoteNik format", 
-              "I/O Error", 
-              JOptionPane.ERROR_MESSAGE);
-        }
-      } // end if user selected a valid folder
-    } // end if were able to save the last modified record
-  } // end method export to NoteNik
+  /** 
+   Export selected notes to some kind of output file. 
   
-  /**
-   Export the list of events in tab-delimited format.
-   */
-  private void exportTabDelim() {
+   @param exportType The desired type of output file. 
+  */
+  private void export(int exportType) {
     boolean modOK = modIfChanged();
     int exported = 0;
+    File selectedFile;
+    NoteIO exportWriter = null;
+    TabDelimFile tabs = null;
+    Note workNote;
     if (modOK) {
-      fileChooser.setDialogTitle ("Export to Tab-Delimited");
-      fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-      fileChooser.setCurrentDirectory(noteFile.getParentFile());
-      fileChooser.setSelectedFile
-          (new File(noteFile.getParentFile(), noteFile.getName() + ".tab"));
-      File selectedFile = fileChooser.showSaveDialog (this);
-      if (selectedFile != null) {
-        TabDelimFile tabs = new TabDelimFile(selectedFile);
-        Note workNote;
-        try {
-          tabs.openForOutput(recDef);
-          for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
-            workNote = noteList.get (workIndex);
-            if (workNote != null) {
-              tabs.nextRecordOut(workNote);
-              exported++;
+      
+      // Retrieve tags preferences
+      String selectTagsStr 
+        = prefsWindow.getTagsPrefs().getSelectTagsAsString();
+      String suppressTagsStr 
+        = prefsWindow.getTagsPrefs().getSuppressTagsAsString();
+      Tags selectTags = new Tags(selectTagsStr);
+      Tags suppressTags = new Tags(suppressTagsStr);
+      
+      
+      // Set up the export file
+      fileChooser.setDialogTitle ("Export to " + EXPORT_TYPE[exportType]);
+      boolean ok = true;
+      switch (exportType) {
+        case NOTENIK_EXPORT:
+          fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+          selectedFile = fileChooser.showSaveDialog(this);
+          if (selectedFile == null
+              || selectedFile.isFile()
+              || (! selectedFile.canWrite())) {
+            ok = false;
+            noValidExportDestination();
+          } else {
+            exportWriter = new NoteIO(recDef, selectedFile);
+          }
+          break;
+        case TABDELIM_EXPORT:
+        default:
+          fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+          fileChooser.setCurrentDirectory(noteFile.getParentFile());
+          fileChooser.setSelectedFile
+            (new File(noteFile.getParentFile(), noteFile.getName() + ".tab"));
+          selectedFile = fileChooser.showSaveDialog(this);
+          if (selectedFile == null) {
+            ok = false;
+            noValidExportDestination();
+          } else {
+            tabs = new TabDelimFile(selectedFile);
+            try {
+              tabs.openForOutput(recDef);
+            } catch (IOException e) {
+              ok = false;
+              exportError(selectedFile);
             }
           }
-          tabs.close();
-          JOptionPane.showMessageDialog(this,
-              String.valueOf(exported) + " Notes exported successfully to"
+      } // end switch for fileChooser setup
+
+      // Write out the selected notes
+      if (ok) {
+        for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
+          workNote = noteList.get (workIndex);
+          if (workNote != null) {
+            boolean tagSelected = workNote.getTags().anyTagFound(selectTags);
+            if (tagSelected) {
+              Note exportNote = new Note(workNote);
+              String cleansedTagsStr;
+              Tags tags = new Tags(exportNote.getTagsAsString());
+              if (suppressTagsStr != null
+                  && suppressTagsStr.length() > 0) {
+                exportNote.setTags(tags.suppress(suppressTags)); 
+              }
+              
+              try {
+                switch (exportType) {
+                  case NOTENIK_EXPORT:
+                    exportWriter.save (exportNote, false);
+                    break;
+                  case TABDELIM_EXPORT:
+                    tabs.nextRecordOut(workNote);
+                    break;
+                } // end switch for output routine
+                exported++;
+              } catch (IOException e) {
+                ok = false;
+                exportError(selectedFile);
+              }
+            } // end if tag selection passed
+          } // end if we've got a good note
+        } // end for loop
+      } // end if ok so far
+          
+      if (ok) {
+        // Close things down and finish up
+        try {
+          switch (exportType) {
+            case TABDELIM_EXPORT:
+              tabs.close();
+              break;
+          }
+        } catch (IOException e) {
+          ok = false;
+          exportError(selectedFile);
+        }
+      } // end if ok so far
+          
+      if (ok) {
+        JOptionPane.showMessageDialog(this,
+            String.valueOf(exported) + " Notes exported successfully to"
                 + GlobalConstants.LINE_FEED
                 + selectedFile.toString(),
-              "Export Results",
-              JOptionPane.INFORMATION_MESSAGE,
-              Home.getShared().getIcon());
-          logger.recordEvent (LogEvent.NORMAL, String.valueOf(exported) 
-              + " Notes exported in tab-delimited format to " 
-              + selectedFile.toString(),
-              false);
-          statusBar.setStatus(String.valueOf(exported) 
+            "Export Results",
+            JOptionPane.INFORMATION_MESSAGE,
+            Home.getShared().getIcon());
+        logger.recordEvent (LogEvent.NORMAL, String.valueOf(exported) 
+            + " Notes exported in tab-delimited format to " 
+            + selectedFile.toString(),
+            false);
+        statusBar.setStatus(String.valueOf(exported) 
             + " Notes exported");
-        } catch (java.io.IOException e) {
-          logger.recordEvent (LogEvent.MEDIUM,
-            "Problem exporting Notes to " + selectedFile.toString(),
-              false);
-            trouble.report ("I/O error attempting to export notes to " 
-                + selectedFile.toString(),
-              "I/O Error");
-            statusBar.setStatus("Trouble exporting Notes");
-        } // end if I/O error
-      } // end if user selected an output file
-    } // end if were able to save the last modified record
+      } // end if ok so far
+    } // end if modok
+  }
+  
+  private void noValidExportDestination() {
+    trouble.report ("No valid export destination specified",
+        "Export Aborted");
+  }
+
+  
+  /**
+   Report an I/O error while performing an export. 
+  
+   @param selectedFile The file with the problem. 
+  */
+  private void exportError(File selectedFile) {
+    logger.recordEvent (LogEvent.MEDIUM,
+      "Problem exporting Notes to " + selectedFile.toString(),
+        false);
+    trouble.report ("I/O error attempting to export notes to " 
+          + selectedFile.toString(),
+        "I/O Error");
+    statusBar.setStatus("Trouble exporting Notes");
   }
   
   private void ioException(IOException e) {
@@ -2174,7 +2240,7 @@ public int checkTags (String find, String replace) {
     } catch (IOException e) {
       backupPath.append(folderForBackups.getAbsolutePath());
     }
-    backupPath.append(xos.getPathSeparator());
+    backupPath.append(File.separator);
     backupPath.append(noteFile.getName());
     backupPath.append(" ");
     backupPath.append("backup ");
@@ -2232,8 +2298,34 @@ public int checkTags (String find, String replace) {
     displayAuxiliaryWindow(linkTweaker);
   }
   
-  public void setTweakedLink (String tweakedLink, String linkID) {
-    if (tweakedLink.length() > 0) {
+  private void invokeLinkTweaker() {
+    displayAuxiliaryWindow(linkTweaker);
+  }
+  
+  /**
+   Get the current link so that it can be tweaked. 
+  
+   @return The Link to be tweaked. 
+  */
+  public String getLinkToTweak() {
+    if (linkText == null) {
+      return "";
+    } else {
+      return linkText.getText();
+    }
+  }
+  
+  /**
+   Set a link field to a new value after it has been tweaked. 
+  
+   @param tweakedLink The link after it has been tweaked. 
+   @param linkID      A string identifying the link, in case there are more
+                      than one. This would be the text used in the label
+                      for the link. 
+  */
+  public void putTweakedLink (String tweakedLink, String linkID) {
+    if (linkText != null
+        && tweakedLink.length() > 0) {
       linkText.setText(tweakedLink);
     }
   }
@@ -2472,10 +2564,11 @@ public int checkTags (String find, String replace) {
     jSeparator5 = new javax.swing.JSeparator();
     importMenuItem = new javax.swing.JMenuItem();
     exportMenu = new javax.swing.JMenu();
-    exportNoteNikMenuItem = new javax.swing.JMenuItem();
+    exportNotenikMenuItem = new javax.swing.JMenuItem();
     exportTabDelimitedMenuItem = new javax.swing.JMenuItem();
     editMenu = new javax.swing.JMenu();
     deleteMenuItem = new javax.swing.JMenuItem();
+    escapeMenuItem = new javax.swing.JMenuItem();
     collectionMenu = new javax.swing.JMenu();
     propertiesMenuItem = new javax.swing.JMenuItem();
     jSeparator2 = new javax.swing.JPopupMenu.Separator();
@@ -2493,8 +2586,10 @@ public int checkTags (String find, String replace) {
     nextMenuItem = new javax.swing.JMenuItem();
     priorMenuItem = new javax.swing.JMenuItem();
     openNoteMenuItem = new javax.swing.JMenuItem();
+    getFileInfoMenuItem = new javax.swing.JMenuItem();
     toolsMenu = new javax.swing.JMenu();
     toolsOptionsMenuItem = new javax.swing.JMenuItem();
+    toolsLinkTweakerMenuItem = new javax.swing.JMenuItem();
     windowMenu = new javax.swing.JMenu();
     helpMenu = new javax.swing.JMenu();
 
@@ -2808,13 +2903,13 @@ public int checkTags (String find, String replace) {
 
     exportMenu.setText("Export");
 
-    exportNoteNikMenuItem.setText("NoteNik...");
-    exportNoteNikMenuItem.addActionListener(new java.awt.event.ActionListener() {
+    exportNotenikMenuItem.setText("Notenik...");
+    exportNotenikMenuItem.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
-        exportNoteNikMenuItemActionPerformed(evt);
+        exportNotenikMenuItemActionPerformed(evt);
       }
     });
-    exportMenu.add(exportNoteNikMenuItem);
+    exportMenu.add(exportNotenikMenuItem);
 
     exportTabDelimitedMenuItem.setText("Tab-Delimited...");
     exportTabDelimitedMenuItem.addActionListener(new java.awt.event.ActionListener() {
@@ -2838,6 +2933,15 @@ public int checkTags (String find, String replace) {
       }
     });
     editMenu.add(deleteMenuItem);
+
+    escapeMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0));
+    escapeMenuItem.setText("Escape Edit");
+    escapeMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        escapeMenuItemActionPerformed(evt);
+      }
+    });
+    editMenu.add(escapeMenuItem);
 
     mainMenuBar.add(editMenu);
 
@@ -2959,6 +3063,15 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
   });
   noteMenu.add(openNoteMenuItem);
 
+  getFileInfoMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_G, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+  getFileInfoMenuItem.setText("Get File Info...");
+  getFileInfoMenuItem.addActionListener(new java.awt.event.ActionListener() {
+    public void actionPerformed(java.awt.event.ActionEvent evt) {
+      getFileInfoMenuItemActionPerformed(evt);
+    }
+  });
+  noteMenu.add(getFileInfoMenuItem);
+
   mainMenuBar.add(noteMenu);
 
   toolsMenu.setText("Tools");
@@ -2970,6 +3083,15 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
     }
   });
   toolsMenu.add(toolsOptionsMenuItem);
+
+  toolsLinkTweakerMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_L, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+  toolsLinkTweakerMenuItem.setText("Link Tweaker...");
+  toolsLinkTweakerMenuItem.addActionListener(new java.awt.event.ActionListener() {
+    public void actionPerformed(java.awt.event.ActionEvent evt) {
+      toolsLinkTweakerMenuItemActionPerformed(evt);
+    }
+  });
+  toolsMenu.add(toolsLinkTweakerMenuItem);
 
   mainMenuBar.add(toolsMenu);
 
@@ -3131,9 +3253,9 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     startReplace();
   }//GEN-LAST:event_replaceMenuItemActionPerformed
 
-  private void exportNoteNikMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportNoteNikMenuItemActionPerformed
-    exportToNoteNik();
-  }//GEN-LAST:event_exportNoteNikMenuItemActionPerformed
+  private void exportNotenikMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportNotenikMenuItemActionPerformed
+    export(NOTENIK_EXPORT);
+  }//GEN-LAST:event_exportNotenikMenuItemActionPerformed
 
   private void saveAllMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveAllMenuItemActionPerformed
     saveAll();
@@ -3148,12 +3270,35 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   }//GEN-LAST:event_deleteNoteMenuItemActionPerformed
 
   private void exportTabDelimitedMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportTabDelimitedMenuItemActionPerformed
-    exportTabDelim();
+    export(TABDELIM_EXPORT);
   }//GEN-LAST:event_exportTabDelimitedMenuItemActionPerformed
 
   private void openNoteMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openNoteMenuItemActionPerformed
     openNote();
   }//GEN-LAST:event_openNoteMenuItemActionPerformed
+
+  private void toolsLinkTweakerMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_toolsLinkTweakerMenuItemActionPerformed
+    invokeLinkTweaker();
+  }//GEN-LAST:event_toolsLinkTweakerMenuItemActionPerformed
+
+  private void escapeMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_escapeMenuItemActionPerformed
+    positionAndDisplay();
+  }//GEN-LAST:event_escapeMenuItemActionPerformed
+
+  private void getFileInfoMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_getFileInfoMenuItemActionPerformed
+    if (position != null) {
+      Note note = position.getNote();
+      if (note != null) {
+        if (note.hasLink()) {
+          String link = note.getLinkAsString();
+          if (link.startsWith("file:")) {
+            fileInfoWindow.setFile(link);
+            displayAuxiliaryWindow(fileInfoWindow);
+          }
+        }
+      }
+    }
+  }//GEN-LAST:event_getFileInfoMenuItemActionPerformed
 
 
 
@@ -3164,8 +3309,9 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem deleteMenuItem;
   private javax.swing.JMenuItem deleteNoteMenuItem;
   private javax.swing.JMenu editMenu;
+  private javax.swing.JMenuItem escapeMenuItem;
   private javax.swing.JMenu exportMenu;
-  private javax.swing.JMenuItem exportNoteNikMenuItem;
+  private javax.swing.JMenuItem exportNotenikMenuItem;
   private javax.swing.JMenuItem exportTabDelimitedMenuItem;
   private javax.swing.JMenuItem fileBackupMenuItem;
   private javax.swing.JMenu fileMenu;
@@ -3176,6 +3322,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem findMenuItem;
   private javax.swing.JTextField findText;
   private javax.swing.JMenuItem flattenTagsMenuItem;
+  private javax.swing.JMenuItem getFileInfoMenuItem;
   private javax.swing.JMenu helpMenu;
   private javax.swing.JMenuItem importMenuItem;
   private javax.swing.JSeparator jSeparator1;
@@ -3206,6 +3353,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem replaceMenuItem;
   private javax.swing.JMenuItem saveAllMenuItem;
   private javax.swing.JScrollPane tableScrollPane;
+  private javax.swing.JMenuItem toolsLinkTweakerMenuItem;
   private javax.swing.JMenu toolsMenu;
   private javax.swing.JMenuItem toolsOptionsMenuItem;
   private javax.swing.JPanel treePanel;

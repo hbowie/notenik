@@ -1,4 +1,29 @@
 
+## Version 1.31 (2015-01-22)
+
+1. **Added Escape Edit Menu Item**
+
+    Selecting the Escape Edit menu item, or hitting the Escape key, will undo any edits currently in progress against the current note.
+
+2. **Corrected Path Name Separator**
+
+    Corrected path name separator being used to form the path for backups.
+
+
+## Version 1.30 (2015-01-17)
+
+1. **Added Tags Export Prefs**
+
+    Tags Export Prefs now allow the user to limit an export to certain tags, and/or to suppress certain tags from appearing in exported tags fields.
+
+
+## Version 1.20 (2015-01-05)
+
+1. **Added Note Menu Item to Text Edit Current Note**
+
+    Added Note Menu Item to open the current note in the preferred local text editor.
+
+
 ## Version 1.10 (2014-10-04)
 
 1. **Added Folder Sync Option**

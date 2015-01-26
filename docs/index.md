@@ -68,6 +68,9 @@
           <a href="#favorites-prefs">Favorites Prefs</a>
         </li>
         <li>
+          <a href="#tags-export-prefs">Tags Export Prefs</a>
+        </li>
+        <li>
           <a href="#folder-sync-prefs">Folder Sync Prefs</a>
         </li>
       </ul>
@@ -312,6 +315,16 @@ Favorites Columns
 
 Favorites Rows
 :    Specify the maximum number of rows you wish to appear on the Favorites page.
+
+<h3 id="tags-export-prefs">Tags Export Prefs</h3>
+
+
+Tags to Select
+:    Leave this blank to select all tags on any export, including a data export performed as part of a Publish process. Specifying one or more tags here will limit the content of the export to items containing at least one of those tags.
+
+Tags to Suppress
+:    Any tags specified here will be removed from all tags fields appearing on exports. This may be useful to suppress tags used for selection at Publish time, as opposed to tags that will appear in the eventual output being created.
+
 
 <h3 id="folder-sync-prefs">Folder Sync Prefs</h3>
 
