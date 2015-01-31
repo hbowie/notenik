@@ -59,7 +59,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "1.31";
+  public static final String PROGRAM_VERSION = "1.40";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -307,7 +307,7 @@ public class NotenikMainFrame
     
     linkTweaker = new LinkTweaker(this, prefsWindow.getPrefsTabs());
     
-    fileInfoWindow = new FileInfoWindow();
+    fileInfoWindow = new FileInfoWindow(this);
 
     // Get System Properties
     userName = System.getProperty ("user.name");
@@ -2037,12 +2037,38 @@ public int checkTags (String find, String replace) {
   public void displayPublishWindow() {
     displayAuxiliaryWindow(publishWindow);
   }
+  
+  /**
+   If the link points to a file on a file share, then display info 
+   about the file. 
+  */
+  private void displayFileInfo() {
+    boolean displayed = false;
+    if (position != null) {
+      Note note = position.getNote();
+      if (note != null) {
+        if (note.hasLink()) {
+          String link = note.getLinkAsString();
+          if (link.startsWith("file:")) {
+            fileInfoWindow.setFile(link);
+            displayAuxiliaryWindow(fileInfoWindow);
+            displayed = true;
+          } // end if we have a file
+        } // end if we have a link
+      } // end if we have a note
+    } // end if we have a position
+    if (! displayed) {
+      trouble.report ("No file to display",
+          "No File Specified");
+    }
+  } // end method
 
   public void displayAuxiliaryWindow(WindowToManage window) {
     window.setLocation(
         this.getX() + 60,
         this.getY() + 60);
     WindowMenuManager.getShared().makeVisible(window);
+    window.toFront();
   }
 
   /**
@@ -2327,6 +2353,13 @@ public int checkTags (String find, String replace) {
     if (linkText != null
         && tweakedLink.length() > 0) {
       linkText.setText(tweakedLink);
+    }
+  }
+  
+  public void setLink(File file) {
+    if (linkText != null && file != null) {
+      linkText.setText(LinkTweaker.tweakAnyLink(file.getAbsolutePath(), 
+          false, false, false, ""));
     }
   }
 
@@ -3286,18 +3319,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   }//GEN-LAST:event_escapeMenuItemActionPerformed
 
   private void getFileInfoMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_getFileInfoMenuItemActionPerformed
-    if (position != null) {
-      Note note = position.getNote();
-      if (note != null) {
-        if (note.hasLink()) {
-          String link = note.getLinkAsString();
-          if (link.startsWith("file:")) {
-            fileInfoWindow.setFile(link);
-            displayAuxiliaryWindow(fileInfoWindow);
-          }
-        }
-      }
-    }
+    displayFileInfo();
   }//GEN-LAST:event_getFileInfoMenuItemActionPerformed
 
 

@@ -19,6 +19,7 @@ package com.powersurgepub.notenik;
   import com.powersurgepub.psutils.*;
   import java.io.*;
   import java.net.*;
+  import javax.swing.*;
 
 /**
  Display info about a file. 
@@ -28,19 +29,30 @@ package com.powersurgepub.notenik;
 public class FileInfoWindow 
     extends javax.swing.JFrame 
         implements WindowToManage {
+  
+  private NotenikMainFrame mainFrame;
+  
+  private File folder = null;
+  private File file = null;
+  
+  private FileTableModel files = new FileTableModel();
 
   /**
    Creates new form FileInfoWindow
    */
-  public FileInfoWindow() {
+  public FileInfoWindow(NotenikMainFrame mainFrame) {
+    this.mainFrame = mainFrame;
     initComponents();
   }
   
   public void setFile(String fileStr) {
 
+    folder = null;
+    file = null;
+    files = new FileTableModel();
     FileName fileName = new FileName(fileStr);
     folderText.setText(fileName.getPath());
-    File folder = new File (fileName.getPath());
+    folder = new File (fileName.getPath());
     boolean folderExists = folder.exists();
     if (folderExists) {
       folderExistsLabel.setText("Folder exists.");
@@ -50,12 +62,36 @@ public class FileInfoWindow
     fileText.setText(fileName.getFileName());
     fileExistsLabel.setText("File does not exist");
     if (folderExists) {
-      File file = fileName.getFile();
+      file = fileName.getFile();
       if (file.exists()) {
         fileExistsLabel.setText("File exists.");
       }
-    }
-  }
+      files.add(file);
+      String fileNameStr = file.getName();
+      int minMatch = fileNameStr.length() - 15;
+      if (minMatch > 5) {
+        String[] dirEntries = folder.list();
+        for (int i = 0; i < dirEntries.length; i++) {
+          String dirEntry = dirEntries[i];
+          if (! dirEntry.equals(fileNameStr)) {
+            int j = 0;
+            while (j < minMatch
+                && j < dirEntry.length()
+                && j < fileNameStr.length()
+                && fileNameStr.charAt(j) == dirEntry.charAt(j)) {
+              j++;
+            }
+            if (j >= minMatch) {
+              File similarFile = new File(folder, dirEntry);
+              files.add(similarFile);
+            }
+          } // end if not the same file
+        } // end for each dir entry
+      } // end if we have enough of a file name to match
+    } // end if folder exists
+    filesTable.setModel(files);
+    filesTable.setRowSelectionInterval(0, 0);
+  } // end method setFile
 
   /**
    This method is called from within the constructor to initialize the form.
@@ -73,6 +109,10 @@ public class FileInfoWindow
     fileLabel = new javax.swing.JLabel();
     fileText = new javax.swing.JLabel();
     fileExistsLabel = new javax.swing.JLabel();
+    filesScrollPane = new javax.swing.JScrollPane();
+    filesTable = new javax.swing.JTable();
+    selectFileButton = new javax.swing.JButton();
+    browseForFileButton = new javax.swing.JButton();
 
     setTitle("File Info");
     setMinimumSize(new java.awt.Dimension(720, 240));
@@ -134,16 +174,93 @@ public class FileInfoWindow
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
     getContentPane().add(fileExistsLabel, gridBagConstraints);
 
+    filesTable.setModel(new javax.swing.table.DefaultTableModel(
+      new Object [][] {
+        {null, null, null, null},
+        {null, null, null, null},
+        {null, null, null, null},
+        {null, null, null, null}
+      },
+      new String [] {
+        "Title 1", "Title 2", "Title 3", "Title 4"
+      }
+    ));
+    filesTable.setAutoCreateRowSorter(true);
+    filesTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+    filesTable.setShowGrid(false);
+    filesScrollPane.setViewportView(filesTable);
+
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 0;
+    gridBagConstraints.gridy = 6;
+    gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+    gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
+    getContentPane().add(filesScrollPane, gridBagConstraints);
+
+    selectFileButton.setText("Replace Link with Selection");
+    selectFileButton.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        selectFileButtonActionPerformed(evt);
+      }
+    });
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 0;
+    gridBagConstraints.gridy = 7;
+    gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
+    getContentPane().add(selectFileButton, gridBagConstraints);
+
+    browseForFileButton.setText("Browse for File...");
+    browseForFileButton.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        browseForFileButtonActionPerformed(evt);
+      }
+    });
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 0;
+    gridBagConstraints.gridy = 8;
+    gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
+    getContentPane().add(browseForFileButton, gridBagConstraints);
+
     pack();
   }// </editor-fold>//GEN-END:initComponents
 
+  private void selectFileButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_selectFileButtonActionPerformed
+
+    int[] rows = filesTable.getSelectedRows();
+    if (rows.length > 0 && rows[0] >= 0) {
+      int row = filesTable.convertRowIndexToModel(rows[0]);
+      File selectedFile = files.get(row);
+      mainFrame.setLink(selectedFile);
+      setVisible(false);
+    }
+    
+  }//GEN-LAST:event_selectFileButtonActionPerformed
+
+  private void browseForFileButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_browseForFileButtonActionPerformed
+    JFileChooser chooser = new JFileChooser();
+    if (folder != null && folder.exists()) {
+      chooser.setCurrentDirectory(folder);
+    }
+    chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+    int response = chooser.showOpenDialog(this);
+    if (response == JFileChooser.APPROVE_OPTION) {
+      File newFile = chooser.getSelectedFile();
+      mainFrame.setLink(newFile);
+      setVisible(false);
+    }
+  }//GEN-LAST:event_browseForFileButtonActionPerformed
+
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
+  private javax.swing.JButton browseForFileButton;
   private javax.swing.JLabel fileExistsLabel;
   private javax.swing.JLabel fileLabel;
   private javax.swing.JLabel fileText;
+  private javax.swing.JScrollPane filesScrollPane;
+  private javax.swing.JTable filesTable;
   private javax.swing.JLabel folderExistsLabel;
   private javax.swing.JLabel folderLabel;
   private javax.swing.JLabel folderText;
+  private javax.swing.JButton selectFileButton;
   // End of variables declaration//GEN-END:variables
 }

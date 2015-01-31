@@ -1,4 +1,11 @@
 
+## Version 1.40 (2015-01-29)
+
+1. **Added Get File Info Item under Note Menu**
+
+    Get File Info command pops up a small window with info about a link to a local file or file share, including a list of files with similar names.
+
+
 ## Version 1.31 (2015-01-22)
 
 1. **Added Escape Edit Menu Item**
