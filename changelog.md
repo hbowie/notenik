@@ -1,4 +1,11 @@
 
+## Version 1.50 (2015-02-06)
+
+1. **Added XML Export and Import**
+
+    The File Menu now contains options for exporting to XML, and for importing from the same.
+
+
 ## Version 1.40 (2015-01-29)
 
 1. **Added Get File Info Item under Note Menu**

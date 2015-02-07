@@ -2227,7 +2227,7 @@ public int checkTags (String find, String replace) {
   
   public void setLink(File file) {
     if (linkText != null && file != null) {
-      linkText.setText(LinkTweaker.tweakAnyLink(file.getAbsolutePath(), 
+      linkText.setText(StringUtils.tweakAnyLink(file.getAbsolutePath(), 
           false, false, false, ""));
     }
   }
