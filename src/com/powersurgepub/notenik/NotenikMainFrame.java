@@ -59,7 +59,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "1.40";
+  public static final String PROGRAM_VERSION = "1.50";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -198,10 +198,6 @@ public class NotenikMainFrame
   
   private             FolderSyncPrefs     folderSyncPrefs;
   private             String              oldTitle = "";
-  
-  private static final String[] EXPORT_TYPE = {"Notenik", "Tab-Delimited"};
-  private static final int NOTENIK_EXPORT = 0;
-  private static final int TABDELIM_EXPORT = 1;
 
   /** Creates new form NotenikMainFrame */
   public NotenikMainFrame() {
@@ -424,7 +420,7 @@ public class NotenikMainFrame
   
    @param note The note to be saved. 
   */
-  private void saveNote(Note note) {
+  protected void saveNote(Note note) {
     try {
       noteIO.save(note, true);
       if (folderSyncPrefs.getSync()) {
@@ -1715,151 +1711,24 @@ public int checkTags (String find, String replace) {
     firstNote();
   }
   
-  /** 
-   Export selected notes to some kind of output file. 
-  
-   @param exportType The desired type of output file. 
-  */
-  private void export(int exportType) {
-    boolean modOK = modIfChanged();
-    int exported = 0;
-    File selectedFile;
-    NoteIO exportWriter = null;
-    TabDelimFile tabs = null;
-    Note workNote;
-    if (modOK) {
-      
-      // Retrieve tags preferences
-      String selectTagsStr 
-        = prefsWindow.getTagsPrefs().getSelectTagsAsString();
-      String suppressTagsStr 
-        = prefsWindow.getTagsPrefs().getSuppressTagsAsString();
-      Tags selectTags = new Tags(selectTagsStr);
-      Tags suppressTags = new Tags(suppressTagsStr);
-      
-      
-      // Set up the export file
-      fileChooser.setDialogTitle ("Export to " + EXPORT_TYPE[exportType]);
-      boolean ok = true;
-      switch (exportType) {
-        case NOTENIK_EXPORT:
-          fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-          selectedFile = fileChooser.showSaveDialog(this);
-          if (selectedFile == null
-              || selectedFile.isFile()
-              || (! selectedFile.canWrite())) {
-            ok = false;
-            noValidExportDestination();
-          } else {
-            exportWriter = new NoteIO(recDef, selectedFile);
-          }
-          break;
-        case TABDELIM_EXPORT:
-        default:
-          fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-          fileChooser.setCurrentDirectory(noteFile.getParentFile());
-          fileChooser.setSelectedFile
-            (new File(noteFile.getParentFile(), noteFile.getName() + ".tab"));
-          selectedFile = fileChooser.showSaveDialog(this);
-          if (selectedFile == null) {
-            ok = false;
-            noValidExportDestination();
-          } else {
-            tabs = new TabDelimFile(selectedFile);
-            try {
-              tabs.openForOutput(recDef);
-            } catch (IOException e) {
-              ok = false;
-              exportError(selectedFile);
-            }
-          }
-      } // end switch for fileChooser setup
+  private void importXMLFile () {
 
-      // Write out the selected notes
-      if (ok) {
-        for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
-          workNote = noteList.get (workIndex);
-          if (workNote != null) {
-            boolean tagSelected = workNote.getTags().anyTagFound(selectTags);
-            if (tagSelected) {
-              Note exportNote = new Note(workNote);
-              String cleansedTagsStr;
-              Tags tags = new Tags(exportNote.getTagsAsString());
-              if (suppressTagsStr != null
-                  && suppressTagsStr.length() > 0) {
-                exportNote.setTags(tags.suppress(suppressTags)); 
-              }
-              
-              try {
-                switch (exportType) {
-                  case NOTENIK_EXPORT:
-                    exportWriter.save (exportNote, false);
-                    break;
-                  case TABDELIM_EXPORT:
-                    tabs.nextRecordOut(workNote);
-                    break;
-                } // end switch for output routine
-                exported++;
-              } catch (IOException e) {
-                ok = false;
-                exportError(selectedFile);
-              }
-            } // end if tag selection passed
-          } // end if we've got a good note
-        } // end for loop
-      } // end if ok so far
-          
-      if (ok) {
-        // Close things down and finish up
-        try {
-          switch (exportType) {
-            case TABDELIM_EXPORT:
-              tabs.close();
-              break;
-          }
-        } catch (IOException e) {
-          ok = false;
-          exportError(selectedFile);
-        }
-      } // end if ok so far
-          
-      if (ok) {
-        JOptionPane.showMessageDialog(this,
-            String.valueOf(exported) + " Notes exported successfully to"
-                + GlobalConstants.LINE_FEED
-                + selectedFile.toString(),
-            "Export Results",
-            JOptionPane.INFORMATION_MESSAGE,
-            Home.getShared().getIcon());
-        logger.recordEvent (LogEvent.NORMAL, String.valueOf(exported) 
-            + " Notes exported in tab-delimited format to " 
-            + selectedFile.toString(),
-            false);
-        statusBar.setStatus(String.valueOf(exported) 
-            + " Notes exported");
-      } // end if ok so far
-    } // end if modok
-  }
-  
-  private void noValidExportDestination() {
-    trouble.report ("No valid export destination specified",
-        "Export Aborted");
-  }
-
-  
-  /**
-   Report an I/O error while performing an export. 
-  
-   @param selectedFile The file with the problem. 
-  */
-  private void exportError(File selectedFile) {
-    logger.recordEvent (LogEvent.MEDIUM,
-      "Problem exporting Notes to " + selectedFile.toString(),
-        false);
-    trouble.report ("I/O error attempting to export notes to " 
-          + selectedFile.toString(),
-        "I/O Error");
-    statusBar.setStatus("Trouble exporting Notes");
+    fileChooser.setDialogTitle ("Import Notes from XML");
+    fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+    if (currentDirectory != null
+        && currentDirectory.exists()
+        && currentDirectory.isDirectory()
+        && currentDirectory.canRead()) {
+      fileChooser.setCurrentDirectory (currentDirectory);
+    }
+    File selectedFile = fileChooser.showOpenDialog(this);
+    if (selectedFile != null) {
+      File importFile = selectedFile;
+      NoteImportXML importer = new NoteImportXML(this);
+      importer.parse(importFile, noteList);
+    }
+    noteList.fireTableDataChanged();
+    firstNote();
   }
   
   private void ioException(IOException e) {
@@ -2537,6 +2406,99 @@ public int checkTags (String find, String replace) {
   public File getCurrentDirectory () {
     return currentDirectory;
   }
+  
+  private void generalExport(int exportType) {
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      
+      boolean ok = true;
+      int exported = 0;
+      
+      String selectTagsStr 
+        = prefsWindow.getTagsPrefs().getSelectTagsAsString();
+      String suppressTagsStr 
+        = prefsWindow.getTagsPrefs().getSuppressTagsAsString();
+      
+      File selectedFile;
+      
+      switch (exportType) {
+
+        case NoteExport.NOTENIK_EXPORT:
+          fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+          selectedFile = fileChooser.showSaveDialog(this);
+          if (selectedFile == null) {
+            // this condition will be handled later
+          }
+          else
+          if (selectedFile.isFile()
+              || (! selectedFile.canWrite())) {
+            ok = false;
+            noValidExportDestination();
+          } 
+          break;
+
+        case NoteExport.XML_EXPORT:
+          fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+          fileChooser.setCurrentDirectory(noteFile.getParentFile());
+          fileChooser.setSelectedFile
+            (new File(noteFile.getParentFile(), noteFile.getName() + ".xml"));
+          selectedFile = fileChooser.showSaveDialog(this);
+          break;
+
+        case NoteExport.TABDELIM_EXPORT:
+        default:
+          fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+          fileChooser.setCurrentDirectory(noteFile.getParentFile());
+          fileChooser.setSelectedFile
+            (new File(noteFile.getParentFile(), noteFile.getName() + ".tab"));
+          selectedFile = fileChooser.showSaveDialog(this);
+      } // end switch for fileChooser setup
+      
+      if (selectedFile == null) {
+        ok = false;
+        noValidExportDestination();
+      } 
+      if (ok) {
+        exported = 
+          exporter.generalExport(
+            selectedFile,
+            noteFile,
+            recDef,
+            noteList,
+            exportType, 
+            selectTagsStr, 
+            suppressTagsStr);
+
+        if (ok && exported >= 0) {
+          JOptionPane.showMessageDialog(this,
+              String.valueOf(exported) + " Notes exported successfully to"
+                  + GlobalConstants.LINE_FEED
+                  + selectedFile.toString(),
+              "Export Results",
+              JOptionPane.INFORMATION_MESSAGE,
+              Home.getShared().getIcon());
+          Logger.getShared().recordEvent (LogEvent.NORMAL, String.valueOf(exported) 
+              + " Notes exported to " 
+              + selectedFile.toString(),
+              false);
+          statusBar.setStatus(String.valueOf(exported) + " Notes exported");
+        } else {
+          Logger.getShared().recordEvent (LogEvent.MEDIUM,
+            "Problem exporting Notes to " + selectedFile.toString(),
+              false);
+          Trouble.getShared().report ("I/O error attempting to export notes to " 
+                + selectedFile.toString(),
+              "I/O Error");
+          statusBar.setStatus("Export problems");
+        }
+      } // end if prepared to attempt export
+    } // end if last mod ok
+  } // end method generalExport
+  
+  private void noValidExportDestination() {
+    Trouble.getShared().report ("No valid export destination specified",
+        "Export Aborted");
+  }
 
   /**
    Show the tips.
@@ -2595,10 +2557,13 @@ public int checkTags (String find, String replace) {
     jSeparator4 = new javax.swing.JSeparator();
     fileBackupMenuItem = new javax.swing.JMenuItem();
     jSeparator5 = new javax.swing.JSeparator();
-    importMenuItem = new javax.swing.JMenuItem();
+    importMenu = new javax.swing.JMenu();
+    importNotenikMenuItem = new javax.swing.JMenuItem();
+    importXMLMenuItem = new javax.swing.JMenuItem();
     exportMenu = new javax.swing.JMenu();
     exportNotenikMenuItem = new javax.swing.JMenuItem();
     exportTabDelimitedMenuItem = new javax.swing.JMenuItem();
+    exportXMLMenuItem = new javax.swing.JMenuItem();
     editMenu = new javax.swing.JMenu();
     deleteMenuItem = new javax.swing.JMenuItem();
     escapeMenuItem = new javax.swing.JMenuItem();
@@ -2926,13 +2891,25 @@ public int checkTags (String find, String replace) {
     fileMenu.add(fileBackupMenuItem);
     fileMenu.add(jSeparator5);
 
-    importMenuItem.setText("Import...");
-    importMenuItem.addActionListener(new java.awt.event.ActionListener() {
+    importMenu.setText("Import");
+
+    importNotenikMenuItem.setText("Import from Notenik...");
+    importNotenikMenuItem.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
-        importMenuItemActionPerformed(evt);
+        importNotenikMenuItemActionPerformed(evt);
       }
     });
-    fileMenu.add(importMenuItem);
+    importMenu.add(importNotenikMenuItem);
+
+    importXMLMenuItem.setText("Import from XML...");
+    importXMLMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        importXMLMenuItemActionPerformed(evt);
+      }
+    });
+    importMenu.add(importXMLMenuItem);
+
+    fileMenu.add(importMenu);
 
     exportMenu.setText("Export");
 
@@ -2951,6 +2928,14 @@ public int checkTags (String find, String replace) {
       }
     });
     exportMenu.add(exportTabDelimitedMenuItem);
+
+    exportXMLMenuItem.setText("XML...");
+    exportXMLMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        exportXMLMenuItemActionPerformed(evt);
+      }
+    });
+    exportMenu.add(exportXMLMenuItem);
 
     fileMenu.add(exportMenu);
 
@@ -3183,9 +3168,9 @@ private void openMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-
   openFile();
 }//GEN-LAST:event_openMenuItemActionPerformed
 
-private void importMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_importMenuItemActionPerformed
+private void importNotenikMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_importNotenikMenuItemActionPerformed
   importFile();
-}//GEN-LAST:event_importMenuItemActionPerformed
+}//GEN-LAST:event_importNotenikMenuItemActionPerformed
 
 private void noteTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_noteTableMouseClicked
   selectTableRow();
@@ -3287,7 +3272,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   }//GEN-LAST:event_replaceMenuItemActionPerformed
 
   private void exportNotenikMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportNotenikMenuItemActionPerformed
-    export(NOTENIK_EXPORT);
+    generalExport(NoteExport.NOTENIK_EXPORT);
   }//GEN-LAST:event_exportNotenikMenuItemActionPerformed
 
   private void saveAllMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveAllMenuItemActionPerformed
@@ -3303,7 +3288,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   }//GEN-LAST:event_deleteNoteMenuItemActionPerformed
 
   private void exportTabDelimitedMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportTabDelimitedMenuItemActionPerformed
-    export(TABDELIM_EXPORT);
+    generalExport(NoteExport.TABDELIM_EXPORT);
   }//GEN-LAST:event_exportTabDelimitedMenuItemActionPerformed
 
   private void openNoteMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openNoteMenuItemActionPerformed
@@ -3322,6 +3307,14 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     displayFileInfo();
   }//GEN-LAST:event_getFileInfoMenuItemActionPerformed
 
+  private void exportXMLMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportXMLMenuItemActionPerformed
+    generalExport(NoteExport.XML_EXPORT);
+  }//GEN-LAST:event_exportXMLMenuItemActionPerformed
+
+  private void importXMLMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_importXMLMenuItemActionPerformed
+    importXMLFile();
+  }//GEN-LAST:event_importXMLMenuItemActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -3335,6 +3328,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenu exportMenu;
   private javax.swing.JMenuItem exportNotenikMenuItem;
   private javax.swing.JMenuItem exportTabDelimitedMenuItem;
+  private javax.swing.JMenuItem exportXMLMenuItem;
   private javax.swing.JMenuItem fileBackupMenuItem;
   private javax.swing.JMenu fileMenu;
   private javax.swing.JMenuItem fileNewMenuItem;
@@ -3346,7 +3340,9 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem flattenTagsMenuItem;
   private javax.swing.JMenuItem getFileInfoMenuItem;
   private javax.swing.JMenu helpMenu;
-  private javax.swing.JMenuItem importMenuItem;
+  private javax.swing.JMenu importMenu;
+  private javax.swing.JMenuItem importNotenikMenuItem;
+  private javax.swing.JMenuItem importXMLMenuItem;
   private javax.swing.JSeparator jSeparator1;
   private javax.swing.JPopupMenu.Separator jSeparator10;
   private javax.swing.JPopupMenu.Separator jSeparator2;

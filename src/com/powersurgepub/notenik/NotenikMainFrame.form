@@ -104,14 +104,29 @@
             </MenuItem>
             <MenuItem class="javax.swing.JSeparator" name="jSeparator5">
             </MenuItem>
-            <MenuItem class="javax.swing.JMenuItem" name="importMenuItem">
+            <Menu class="javax.swing.JMenu" name="importMenu">
               <Properties>
-                <Property name="text" type="java.lang.String" value="Import..."/>
+                <Property name="text" type="java.lang.String" value="Import"/>
               </Properties>
-              <Events>
-                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="importMenuItemActionPerformed"/>
-              </Events>
-            </MenuItem>
+              <SubComponents>
+                <MenuItem class="javax.swing.JMenuItem" name="importNotenikMenuItem">
+                  <Properties>
+                    <Property name="text" type="java.lang.String" value="Import from Notenik..."/>
+                  </Properties>
+                  <Events>
+                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="importNotenikMenuItemActionPerformed"/>
+                  </Events>
+                </MenuItem>
+                <MenuItem class="javax.swing.JMenuItem" name="importXMLMenuItem">
+                  <Properties>
+                    <Property name="text" type="java.lang.String" value="Import from XML..."/>
+                  </Properties>
+                  <Events>
+                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="importXMLMenuItemActionPerformed"/>
+                  </Events>
+                </MenuItem>
+              </SubComponents>
+            </Menu>
             <Menu class="javax.swing.JMenu" name="exportMenu">
               <Properties>
                 <Property name="text" type="java.lang.String" value="Export"/>
@@ -131,6 +146,14 @@
                   </Properties>
                   <Events>
                     <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="exportTabDelimitedMenuItemActionPerformed"/>
+                  </Events>
+                </MenuItem>
+                <MenuItem class="javax.swing.JMenuItem" name="exportXMLMenuItem">
+                  <Properties>
+                    <Property name="text" type="java.lang.String" value="XML..."/>
+                  </Properties>
+                  <Events>
+                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="exportXMLMenuItemActionPerformed"/>
                   </Events>
                 </MenuItem>
               </SubComponents>
