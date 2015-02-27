@@ -59,7 +59,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "1.50";
+  public static final String PROGRAM_VERSION = "1.51";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -335,14 +335,19 @@ public class NotenikMainFrame
     // note = new Note();
     // displayNote();
     // String lastFolderString = userPrefs.getPref (FavoritesPrefs.LAST_FILE, "");
+    FileSpec lastFileSpec = filePrefs.getStartupFileSpec();
     String lastFolderString = filePrefs.getStartupFilePath();
+    String lastTitle = "";
     if (lastFolderString != null
         && lastFolderString.length() > 0) {
       File lastFolder = new File (lastFolderString);
       if (lastFolder.exists()
           && lastFolder.isDirectory()
           && lastFolder.canRead()) {
-        openFile (lastFolder);
+        if (lastFileSpec != null) {
+          lastTitle = lastFileSpec.getLastTitle();
+        }
+        openFile (lastFolder, lastTitle);
         if (prefsWindow.getFavoritesPrefs().isOpenStartup()) {
           launchStartupURLs();
         }
@@ -353,7 +358,7 @@ public class NotenikMainFrame
       File defaultDataFolder = Home.getShared().getProgramDefaultDataFolder();
       Home.getShared().ensureProgramDefaultDataFolder();
       if (defaultDataFolder.exists()) {
-        openFile (defaultDataFolder);
+        openFile (defaultDataFolder, "");
         if (noteList.size() == 0) {
           addFirstNote();
         }
@@ -1094,6 +1099,9 @@ public int checkTags (String find, String replace) {
     lastModDateText.setText (note.getLastModDate(NoteParms.COMPLETE_FORMAT));
     statusBar.setPosition(position.getIndexForDisplay(), noteList.size());
     modified = false;
+    if (currentFileSpec != null) {
+      currentFileSpec.setLastTitle(note.getTitle());
+    }
   }
   
   private void reload (Note note) {
@@ -1345,7 +1353,7 @@ public int checkTags (String find, String replace) {
                   onto the application icon.
    */
   public void handleOpenFile (File inFile) {
-    openFile (inFile);
+    openFile (inFile, "");
   }
 
   /**
@@ -1384,7 +1392,7 @@ public int checkTags (String find, String replace) {
         && noteFile.exists()
         && noteFile.isDirectory()
         && noteFile.canRead()) {
-      openFile (noteFile);
+      openFile (noteFile, "");
       position = savePosition;
       positionAndDisplay();
     }
@@ -1410,7 +1418,7 @@ public int checkTags (String find, String replace) {
       if (selectedFile.exists()
           && selectedFile.isDirectory()
           && selectedFile.canRead()) {
-        openFile (selectedFile);
+        openFile (selectedFile, "");
       } else {
         trouble.report ("Trouble opening file " + selectedFile.toString(),
             "File Open Error");
@@ -1418,7 +1426,7 @@ public int checkTags (String find, String replace) {
     } // end if user approved a file/folder choice
   } // end method openFile
 
-  private void openFile (File fileToOpen) {
+  private void openFile (File fileToOpen, String titleToDisplay) {
     closeFile();
     initCollection();
     setNoteFile (fileToOpen);
@@ -1435,7 +1443,15 @@ public int checkTags (String find, String replace) {
     noteList.fireTableDataChanged();
     position = new NotePositioned (recDef);
     setPreferredCollectionView();
-    position = noteList.first(position);
+    int index = -1;
+    if (titleToDisplay != null && titleToDisplay.length() > 0) {
+      Note noteToFind = new Note(noteList.getRecDef(), titleToDisplay);
+      index = noteList.find(noteToFind);
+      position = noteList.positionUsingListIndex(index);
+    }
+    if (index < 0) {
+      position = noteList.first(position);
+    }
     positionAndDisplay();
   }
   
@@ -1892,6 +1908,7 @@ public int checkTags (String find, String replace) {
       exporter = new NoteExport(this);
       if (noteList != null) {
         noteList.setSource (file);
+        noteList.setTitle(noteList.getSource().getName());
       }
       currentFileSpec = recentFiles.addRecentFile (file);
       currentDirectory = file;
