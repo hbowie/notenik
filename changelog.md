@@ -1,4 +1,11 @@
 
+## Version 1.51 (2015-02-24)
+
+1. **Now Remembers Last Note Displayed**
+
+    Instead of always positioning on the first note on the list, Notenik now attempts to re-position itself on the last item displayed when a collection is opened.
+
+
 ## Version 1.50 (2015-02-06)
 
 1. **Added XML Export and Import**
