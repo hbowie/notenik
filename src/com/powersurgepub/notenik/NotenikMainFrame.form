@@ -148,6 +148,14 @@
                     <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="exportTabDelimitedMenuItemActionPerformed"/>
                   </Events>
                 </MenuItem>
+                <MenuItem class="javax.swing.JMenuItem" name="exportTabDelimitedMSMenuItem">
+                  <Properties>
+                    <Property name="text" type="java.lang.String" value="Tab-Delimited for MS Links"/>
+                  </Properties>
+                  <Events>
+                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="exportTabDelimitedMSMenuItemActionPerformed"/>
+                  </Events>
+                </MenuItem>
                 <MenuItem class="javax.swing.JMenuItem" name="exportXMLMenuItem">
                   <Properties>
                     <Property name="text" type="java.lang.String" value="XML..."/>

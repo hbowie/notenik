@@ -59,7 +59,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "1.51";
+  public static final String PROGRAM_VERSION = "1.60";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -2437,7 +2437,8 @@ public int checkTags (String find, String replace) {
         = prefsWindow.getTagsPrefs().getSuppressTagsAsString();
       
       File selectedFile;
-      
+      fileChooser.setDialogTitle ("Export to " 
+          + NoteExport.EXPORT_TYPE[exportType]);
       switch (exportType) {
 
         case NoteExport.NOTENIK_EXPORT:
@@ -2459,6 +2460,14 @@ public int checkTags (String find, String replace) {
           fileChooser.setCurrentDirectory(noteFile.getParentFile());
           fileChooser.setSelectedFile
             (new File(noteFile.getParentFile(), noteFile.getName() + ".xml"));
+          selectedFile = fileChooser.showSaveDialog(this);
+          break;
+          
+        case NoteExport.TABDELIM_EXPORT_MS_LINKS:
+          fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+          fileChooser.setCurrentDirectory(noteFile.getParentFile());
+          fileChooser.setSelectedFile
+            (new File(noteFile.getParentFile(), noteFile.getName() + ".tab"));
           selectedFile = fileChooser.showSaveDialog(this);
           break;
 
@@ -2580,6 +2589,7 @@ public int checkTags (String find, String replace) {
     exportMenu = new javax.swing.JMenu();
     exportNotenikMenuItem = new javax.swing.JMenuItem();
     exportTabDelimitedMenuItem = new javax.swing.JMenuItem();
+    exportTabDelimitedMSMenuItem = new javax.swing.JMenuItem();
     exportXMLMenuItem = new javax.swing.JMenuItem();
     editMenu = new javax.swing.JMenu();
     deleteMenuItem = new javax.swing.JMenuItem();
@@ -2945,6 +2955,14 @@ public int checkTags (String find, String replace) {
       }
     });
     exportMenu.add(exportTabDelimitedMenuItem);
+
+    exportTabDelimitedMSMenuItem.setText("Tab-Delimited for MS Links");
+    exportTabDelimitedMSMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        exportTabDelimitedMSMenuItemActionPerformed(evt);
+      }
+    });
+    exportMenu.add(exportTabDelimitedMSMenuItem);
 
     exportXMLMenuItem.setText("XML...");
     exportXMLMenuItem.addActionListener(new java.awt.event.ActionListener() {
@@ -3332,6 +3350,10 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     importXMLFile();
   }//GEN-LAST:event_importXMLMenuItemActionPerformed
 
+  private void exportTabDelimitedMSMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportTabDelimitedMSMenuItemActionPerformed
+    generalExport(NoteExport.TABDELIM_EXPORT_MS_LINKS);
+  }//GEN-LAST:event_exportTabDelimitedMSMenuItemActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -3344,6 +3366,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem escapeMenuItem;
   private javax.swing.JMenu exportMenu;
   private javax.swing.JMenuItem exportNotenikMenuItem;
+  private javax.swing.JMenuItem exportTabDelimitedMSMenuItem;
   private javax.swing.JMenuItem exportTabDelimitedMenuItem;
   private javax.swing.JMenuItem exportXMLMenuItem;
   private javax.swing.JMenuItem fileBackupMenuItem;

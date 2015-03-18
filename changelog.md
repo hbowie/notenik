@@ -1,4 +1,11 @@
 
+## Version 1.60 (2015-03-18)
+
+1. **Added Export for MS Links**
+
+    Added a new export format that combines the Title and the Link into a single field, separated by '#'.
+
+
 ## Version 1.51 (2015-02-24)
 
 1. **Now Remembers Last Note Displayed**

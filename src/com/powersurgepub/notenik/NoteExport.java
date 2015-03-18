@@ -37,10 +37,13 @@ public class NoteExport {
   public static final String[] EXPORT_TYPE = {
     "Notenik", 
     "Tab-Delimited",
+    "Tab-Delimited - MS links",
     "XML"};
+  
   public static final int NOTENIK_EXPORT = 0;
   public static final int TABDELIM_EXPORT = 1;
-  public static final int XML_EXPORT = 2;
+  public static final int TABDELIM_EXPORT_MS_LINKS = 2;
+  public static final int XML_EXPORT = 3;
   
   public static final String NOTENIK = "notenik";
   public static final String NOTE    = "note";
@@ -159,6 +162,19 @@ public class NoteExport {
           exported = -1;
         }
         break;
+        
+      case TABDELIM_EXPORT_MS_LINKS:
+        tabs = new TabDelimFile(exportFile);
+        RecordDefinition msLinksDef = new RecordDefinition();
+        msLinksDef.addColumn("Link");
+        msLinksDef.addColumn("Tags");
+        msLinksDef.addColumn("Notes");
+        try {
+          tabs.openForOutput(msLinksDef);
+        } catch (IOException e) {
+          ok = false;
+        }
+        break;
 
       case TABDELIM_EXPORT:
       default:
@@ -170,7 +186,7 @@ public class NoteExport {
           ok = false;
           exported = -1;
         }
-       
+        break;
     } // end switch for file open
 
     // Write out the selected notes
@@ -210,6 +226,16 @@ public class NoteExport {
                   }
                   xmlWriter.endXML(NOTE);
                   break;
+                case TABDELIM_EXPORT_MS_LINKS:
+                  DataRecord msLinksRec = new DataRecord();
+                  msLinksRec.addField(tabs.getRecDef(), 
+                      workNote.getTitle() + "#" + workNote.getLinkAsString());
+                  msLinksRec.addField(tabs.getRecDef(), 
+                      workNote.getTagsAsString());
+                  msLinksRec.addField(tabs.getRecDef(), 
+                      workNote.getBody());
+                  tabs.nextRecordOut(msLinksRec);
+                  break;
                 case TABDELIM_EXPORT:
                 default:
                   tabs.nextRecordOut(workNote);
@@ -238,6 +264,7 @@ public class NoteExport {
             }
             break;
           case TABDELIM_EXPORT:
+          case TABDELIM_EXPORT_MS_LINKS:
           default:
             tabs.close();
             break;
