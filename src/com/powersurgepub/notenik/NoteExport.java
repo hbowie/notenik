@@ -166,8 +166,8 @@ public class NoteExport {
       case TABDELIM_EXPORT_MS_LINKS:
         tabs = new TabDelimFile(exportFile);
         RecordDefinition msLinksDef = new RecordDefinition();
-        msLinksDef.addColumn("Link");
-        msLinksDef.addColumn("Tags");
+        msLinksDef.addColumn("URL");
+        msLinksDef.addColumn("Topic");
         msLinksDef.addColumn("Notes");
         try {
           tabs.openForOutput(msLinksDef);
