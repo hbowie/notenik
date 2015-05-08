@@ -1179,10 +1179,16 @@ public int checkTags (String find, String replace) {
     if (modified) {
       String newFileName = note.getFileName();
       if ((! note.hasTitle()) || note.getTitle().length() == 0) {
-        trouble.report (this, 
-            "The Title field has been left blank", 
-            "Missing Key Field");
-        modOK = false;
+        Object[] options = {"OK, let me fix it", "Cancel and discard the Note"};
+        int response = JOptionPane.showOptionDialog(this, 
+            "The Note cannot be saved because the Title field has been left blank", 
+            "Data Entry Error", 
+            JOptionPane.OK_CANCEL_OPTION, 
+            JOptionPane.WARNING_MESSAGE, 
+            null, 
+            options, 
+            options[0]);
+        modOK = (response == 1);
       } 
       else 
       if ((! newFileName.equals(fileName))
@@ -1288,6 +1294,7 @@ public int checkTags (String find, String replace) {
   /**
      Standard way to respond to an About Menu Item Selection on a Mac.
    */
+  @Override
   public void handleAbout() {
     displayAuxiliaryWindow(aboutWindow);
   }
@@ -2467,7 +2474,7 @@ public int checkTags (String find, String replace) {
           fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
           fileChooser.setCurrentDirectory(noteFile.getParentFile());
           fileChooser.setSelectedFile
-            (new File(noteFile.getParentFile(), noteFile.getName() + ".tab"));
+            (new File(noteFile.getParentFile(), noteFile.getName() + ".txt"));
           selectedFile = fileChooser.showSaveDialog(this);
           break;
 
@@ -2476,7 +2483,7 @@ public int checkTags (String find, String replace) {
           fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
           fileChooser.setCurrentDirectory(noteFile.getParentFile());
           fileChooser.setSelectedFile
-            (new File(noteFile.getParentFile(), noteFile.getName() + ".tab"));
+            (new File(noteFile.getParentFile(), noteFile.getName() + ".txt"));
           selectedFile = fileChooser.showSaveDialog(this);
       } // end switch for fileChooser setup
       
