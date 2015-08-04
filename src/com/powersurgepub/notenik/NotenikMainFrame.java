@@ -1194,7 +1194,7 @@ public int checkTags (String find, String replace) {
       if ((! newFileName.equals(fileName))
           && noteIO.exists(newFileName)) {
         trouble.report (this, 
-            "An event already exists with the same What field",
+            "A Note already exists with the same What field",
             "Duplicate Found");
         modOK = false;
       } else {
