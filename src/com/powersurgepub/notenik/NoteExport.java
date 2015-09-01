@@ -143,7 +143,7 @@ public class NoteExport {
 
       case NOTENIK_EXPORT:
 
-        exportWriter = new NoteIO(recDef, exportFile);
+        exportWriter = new NoteIO(exportFile, NoteParms.DEFINED_TYPE, recDef);
         break;
 
       case XML_EXPORT:

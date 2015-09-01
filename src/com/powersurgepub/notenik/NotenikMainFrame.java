@@ -23,6 +23,7 @@ package com.powersurgepub.notenik;
   import com.powersurgepub.psdatalib.psdata.widgets.*;
   import com.powersurgepub.psdatalib.pstags.*;
   import com.powersurgepub.psdatalib.notenik.*;
+  import com.powersurgepub.psdatalib.psdata.values.*;
   import com.powersurgepub.psdatalib.pslist.*;
   import com.powersurgepub.psdatalib.tabdelim.*;
   import com.powersurgepub.psdatalib.txbio.*;
@@ -59,7 +60,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "1.60";
+  public static final String PROGRAM_VERSION = "1.70";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -69,7 +70,7 @@ public class NotenikMainFrame
   public static final        int    ONE_HOUR      = ONE_MINUTE * 60;
 
   public static final String INVALID_URL_TAG = "Invalid URL";
-
+  
   public static final String URLUNION_FILE_NAME           = "urlunion.html";
   public static final String INDEX_FILE_NAME              = "index.html";
   public static final String FAVORITES_FILE_NAME          = "favorites.html";
@@ -123,11 +124,21 @@ public class NotenikMainFrame
   private             RecentFiles         recentFiles;
   private             FilePrefs           filePrefs;
   private             WebPrefs            webPrefs;
+  
+  /** File of Notes that is currently open. */
+  private             NoteIO              noteIO = null;
+  private             FileSpec            currentFileSpec = null;
+  private             File                noteFile = null;
+  private             File                currentDirectory;
+  private             NoteExport          exporter;
+  private             ArrayList<DataWidget> widgets = new ArrayList<DataWidget>();
 
   // GUI Elements
   private             TextSelector        tagsTextSelector;
   private             TagTreeCellRenderer treeCellRenderer;
   private             DataWidget          linkText = null;
+  private             DataWidget          statusWidget = null;
+  private             boolean             statusIncluded      = false;
 
   private             NotePositioned      position = null;
   private             boolean             modified = false;
@@ -137,18 +148,11 @@ public class NotenikMainFrame
   private             NoteList            noteList = null;
   
   // The following fields define the fields in the collection. 
-  private             DataDictionary      dict = null;
-  private             RecordDefinition    recDef = null;
-  private             ArrayList<DataWidget> widgets = new ArrayList<DataWidget>();
+  // private             int                 noteType = NoteParms.NOTES_ONLY_TYPE;
+  // private             DataDictionary      dict = null;
+  // private             RecordDefinition    recDef = null;
   
   private             XFileChooser        fileChooser = new XFileChooser();
-
-  /** File of Notes that is currently open. */
-  private             FileSpec            currentFileSpec = null;
-  private             File                noteFile = null;
-  private             File                currentDirectory;
-  private             NoteIO              noteIO = null;
-  private             NoteExport          exporter;
   
   private             String              fileName = "";
 
@@ -250,10 +254,10 @@ public class NotenikMainFrame
       recentFiles.purgeInaccessibleFiles();
     }
     
-    initRecDef();
-    noteList = new NoteList(recDef);
-    position = new NotePositioned(recDef);
-    buildNoteTabs();
+    // initRecDef();
+    // noteList = new NoteList(recDef);
+    // position = new NotePositioned(recDef);
+    // buildNoteTabs();
 
     // Set initial UI prefs
     setBounds (
@@ -263,7 +267,7 @@ public class NotenikMainFrame
         userPrefs.getPrefAsInt (FavoritesPrefs.PREFS_HEIGHT, 620));
     CommonPrefs.getShared().setSplitPane(mainSplitPane);
     CommonPrefs.getShared().setMainWindow(this);
-    setPreferredCollectionView();
+    // setPreferredCollectionView();
 
     // Set up Logging
     logWindow = new LogWindow ();
@@ -392,7 +396,7 @@ public class NotenikMainFrame
     boolean modOK = modIfChanged();
 
     if (modOK) {
-      position = new NotePositioned(recDef);
+      position = new NotePositioned(noteIO.getRecDef());
       position.setIndex (noteList.size());
       fileName = "";
       displayNote();
@@ -404,7 +408,7 @@ public class NotenikMainFrame
    Add the first Note for a new collection.
    */
   public void addFirstNote() {
-    position = new NotePositioned(recDef);
+    position = new NotePositioned(noteIO.getRecDef());
     position.setIndex (noteList.size());
 
     Note note = position.getNote();
@@ -451,7 +455,7 @@ public class NotenikMainFrame
       Note note = position.getNote();
       Note newNote = new Note(note);
       newNote.setTitle(note.getTitle() + " copy");
-      position = new NotePositioned(recDef);
+      position = new NotePositioned(noteIO.getRecDef());
       position.setIndex (noteList.size());
       position.setNote(newNote);
       position.setNewNote(true);
@@ -526,7 +530,7 @@ public class NotenikMainFrame
   public void changeAllTags (String from, String to) {
 
     modIfChanged();
-    NotePositioned workNote = new NotePositioned (recDef);
+    NotePositioned workNote = new NotePositioned (noteIO.getRecDef());
     int mods = 0;
     for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
       workNote.setNote (noteList.get (workIndex));
@@ -550,7 +554,7 @@ public class NotenikMainFrame
 
   private void flattenTags() {
     modIfChanged();
-    NotePositioned workNote = new NotePositioned(recDef);
+    NotePositioned workNote = new NotePositioned(noteIO.getRecDef());
     for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
       workNote.setNote (noteList.get (workIndex));
       workNote.getNote().flattenTags();
@@ -562,7 +566,7 @@ public class NotenikMainFrame
 
   private void lowerCaseTags() {
     modIfChanged();
-    NotePositioned workNote = new NotePositioned(recDef);
+    NotePositioned workNote = new NotePositioned(noteIO.getRecDef());
     for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
       workNote.setNote (noteList.get (workIndex));
       workNote.getNote().lowerCaseTags();
@@ -1067,9 +1071,9 @@ public int checkTags (String find, String replace) {
     }
     fileName = note.getFileName();
     
-    if (widgets != null && widgets.size() == recDef.getNumberOfFields()) {
-      for (int i = 0; i < recDef.getNumberOfFields(); i++) {
-        DataFieldDefinition fieldDef = recDef.getDef(i);
+    if (widgets != null && widgets.size() == noteIO.getNumberOfFields()) {
+      for (int i = 0; i < noteIO.getNumberOfFields(); i++) {
+        DataFieldDefinition fieldDef = noteIO.getRecDef().getDef(i);
         String fieldName = fieldDef.getProperName();
         DataWidget widget = widgets.get(i);
         if (fieldName.equalsIgnoreCase(NoteParms.TITLE_FIELD_NAME)) {
@@ -1132,8 +1136,8 @@ public int checkTags (String find, String replace) {
 
     Note note = position.getNote();
     
-    for (int i = 0; i < recDef.getNumberOfFields(); i++) {
-      DataFieldDefinition fieldDef = recDef.getDef(i);
+    for (int i = 0; i < noteIO.getNumberOfFields(); i++) {
+      DataFieldDefinition fieldDef = noteIO.getRecDef().getDef(i);
       String fieldName = fieldDef.getProperName();
       DataWidget widget = widgets.get(i);
       if (fieldName.equalsIgnoreCase(NoteParms.TITLE_FIELD_NAME)) {
@@ -1410,7 +1414,7 @@ public int checkTags (String find, String replace) {
    */
   private void openFile() {
     closeFile();
-    fileChooser.setDialogTitle ("Open Notes");
+    fileChooser.setDialogTitle ("Open Notes Collection");
     fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
     if (currentDirectory != null
         && currentDirectory.exists()
@@ -1434,8 +1438,42 @@ public int checkTags (String find, String replace) {
   } // end method openFile
 
   private void openFile (File fileToOpen, String titleToDisplay) {
+    
     closeFile();
+    
+    // Process template file if one exists
+    File templateFile = new File(fileToOpen, NoteParms.TEMPLATE_FILE_NAME);
+    boolean templateFound = false;
+    NoteIO templateIO = null;
+    if (templateFile.exists()
+        && templateFile.isFile()
+        && templateFile.canRead()) {
+      // Let the template fields define the record definition
+      templateIO = new NoteIO(fileToOpen, NoteParms.NOTES_GENERAL_TYPE);
+      templateIO.buildRecordDefinition(); 
+      try {
+        Note templateNote = templateIO.getNote(templateFile, "");
+        if (templateNote != null
+            && templateIO.getRecDef().getNumberOfFields() > 0) {
+          templateFound = true;
+        }
+      } catch (IOException e) {
+        System.out.println("I/O Error while attempting to read template file");
+      }
+    }
+    
+    if (templateFound) {
+      noteIO = new NoteIO(
+          fileToOpen, 
+          NoteParms.DEFINED_TYPE, 
+          templateIO.getRecDef());
+    } else {
+      noteIO = new NoteIO(
+          fileToOpen,
+          NoteParms.NOTES_ONLY_TYPE);
+    }
     initCollection();
+    
     setNoteFile (fileToOpen);
     try {
       noteIO.load(noteList);
@@ -1448,7 +1486,7 @@ public int checkTags (String find, String replace) {
     buildNoteTabs();
     collectionWindow.newNoteFolder(noteList, noteIO);
     noteList.fireTableDataChanged();
-    position = new NotePositioned (recDef);
+    position = new NotePositioned (noteIO.getRecDef());
     setPreferredCollectionView();
     int index = -1;
     if (titleToDisplay != null && titleToDisplay.length() > 0) {
@@ -1463,11 +1501,156 @@ public int checkTags (String find, String replace) {
   }
   
   /**
+   Purge closed or canceled items. 
+  */
+  private void purge() {
+    
+    modIfChanged();
+    noFindInProgress();
+    int purged = 0;
+    
+    String[] options = {
+      "Cancel",
+      "Purge and Discard",
+      "Purge and Copy"};
+    
+    int purgeCancel = 0;
+    int purgeDiscard = 1;
+    int purgeCopy = 2;
+    
+    int option = JOptionPane.showOptionDialog(this,
+        "Purge Closed Notes?",
+        "Purge Options",
+        JOptionPane.YES_NO_CANCEL_OPTION,
+        JOptionPane.QUESTION_MESSAGE,
+        Home.getShared().getIcon(),
+        options,
+        options[purgeCopy]);
+    
+    File purgeTarget = null;
+    String archiveFolderStr = currentFileSpec.getArchiveFolder();
+    if (archiveFolderStr != null && archiveFolderStr.length() > 0) {
+      File archiveFolder = new File(archiveFolderStr);
+      if (archiveFolder.exists() 
+          && archiveFolder.isDirectory() 
+          && archiveFolder.canWrite()) {
+        purgeTarget = archiveFolder;
+        fileChooser.setCurrentDirectory(archiveFolder.getParentFile());
+        fileChooser.setSelectedFile(archiveFolder);
+      }
+    }
+    
+    NoteIO purgeIO = null;
+    
+    if (option == purgeCopy) {
+      fileChooser.setDialogTitle ("Select Folder to Hold Purged Notes");
+      fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+      purgeTarget = fileChooser.showOpenDialog(this);
+      if (purgeTarget == null) {
+        option = purgeCancel;
+      } else {
+        if (purgeTarget.exists()
+            && purgeTarget.isDirectory()
+            && purgeTarget.canRead()) {
+          purgeIO = new NoteIO(purgeTarget, NoteParms.DEFINED_TYPE, noteIO.getRecDef());
+        } else {
+          purgeTarget = null;
+          option = purgeCancel;
+        }
+      } // end if purge target folder not null
+    } // end if option 1 was chosen
+    
+    if (option == purgeCopy || option == purgeDiscard) {
+      Note workNote;
+      int workIndex = 0;
+      while (workIndex < noteList.size()) {
+        workNote = noteList.get (workIndex);
+        boolean deleted = false;
+        if (workNote.getStatus().isDone()) {
+          boolean okToDelete = true;  
+          String fileToDelete = workNote.getDiskLocation();         
+          if (option == purgeCopy) {
+            try {
+              purgeIO.save(purgeTarget, workNote, false);
+            } catch (IOException e) {
+              okToDelete = false;
+              System.out.println("I/O Error while attempting to save " 
+                  + workNote.getTitle() + " to Archive folder");
+            }
+          } // end of attempt to copy
+          if (okToDelete) {
+            deleted = noteList.remove (workNote);
+            if (! deleted) {
+              System.out.println("Unable to remove " 
+                  + workNote.getTitle() + " from note list");
+            }
+            if (deleted) {
+              deleted = new File(fileToDelete).delete();
+            }
+            if (! deleted) {
+              trouble.report(
+                  "Unable to delete note at " + fileToDelete, 
+                  "Delete Failure");
+            }
+            if (folderSyncPrefs.getSync()) {
+              File syncFile = noteIO.getSyncFile(
+                  folderSyncPrefs.getSyncFolder(), 
+                  folderSyncPrefs.getSyncPrefix(), 
+                  workNote.getTitle());
+              syncFile.delete();
+            }
+            noteList.fireTableDataChanged();
+            if (deleted) {
+              purged++;
+            } 
+          } // End if OK to Delete
+        } // end if note is a candidate for deletion
+        if (! deleted) {
+          workIndex++;
+        }
+      } // end of list
+    } // end if user chose to proceed with a purge
+    
+    if (purged > 0 && option == purgeCopy && purgeTarget != null) {
+      currentFileSpec.setArchiveFolder(purgeTarget);
+    }
+    
+    if (purged > 0) {
+      openFile (noteFile, "");   
+      position.setNavigatorToList (collectionTabbedPane.getSelectedIndex() == 0);
+      position = noteList.first (position);
+      positionAndDisplay();
+    }
+    
+    String plural = StringUtils.pluralize("Note", purged);
+    
+    JOptionPane.showMessageDialog(this,
+        String.valueOf(purged) + " " + plural + " purged successfully",
+        "Purge Results",
+        JOptionPane.INFORMATION_MESSAGE,
+        Home.getShared().getIcon());
+    Logger.getShared().recordEvent (LogEvent.NORMAL, String.valueOf(purged) 
+        + " " + plural + " purged",
+        false);
+    statusBar.setStatus(String.valueOf(purged) + " Notes purged");
+  } // end of method purge
+  
+  private void closeNote() {
+    Note note = position.getNote();
+    String closedStr = ItemStatusConfig.getShared().getClosedString();
+    statusWidget.setText(closedStr);
+    // note.setStatus(ItemStatusConfig.getShared().getClosedString());
+  }
+  
+  /**
    Build the user interface to view and update one note. 
   */
   private void buildNoteTabs() {
     
     linkText = null;
+    tagsTextSelector = null;
+    statusWidget = null;
+    statusIncluded = false;
     JPanel notePanel = new JPanel();
     notePanel.setLayout(new GridBagLayout());
     widgets = new ArrayList();
@@ -1475,10 +1658,9 @@ public int checkTags (String find, String replace) {
 		gb.startLayout (notePanel, 2, 99);
 		gb.setAllInsets (4);
 		gb.setDefaultRowWeight (0.0);
-		
     WidgetWithLabel widgetWithLabel = new WidgetWithLabel();
-    for (int i = 0; i < recDef.getNumberOfFields(); i++) {
-      DataFieldDefinition fieldDef = recDef.getDef(i);
+    for (int i = 0; i < noteIO.getNumberOfFields(); i++) {
+      DataFieldDefinition fieldDef = noteIO.getRecDef().getDef(i);
       widgetWithLabel = NoteParms.getWidgetWithLabel(fieldDef, this, gb); 
       
       switch (fieldDef.getType()) {
@@ -1497,6 +1679,10 @@ public int checkTags (String find, String replace) {
           linkLabel = (LinkLabel)widgetWithLabel.getLabel();
           linkLabel.setLinkTweaker(linkTweaker);
           break;
+        case (DataFieldDefinition.STATUS_TYPE):
+          statusWidget = widgetWithLabel.getWidget();
+          statusIncluded = true;
+          break;
       }
       
       widgets.add(widgetWithLabel.getWidget());
@@ -1513,6 +1699,14 @@ public int checkTags (String find, String replace) {
     gb.add(lastModDateText);
     
     mainSplitPane.setRightComponent(notePanel);
+    
+    if (tagsTextSelector != null) {
+      tagsTextSelector.setValueList(noteList.getTagsList());
+    }
+
+    purgeMenuItem.setEnabled(statusIncluded);
+    closeNoteMenuItem.setEnabled(statusIncluded);
+   
   }
 
   private void savePreferredCollectionView () {
@@ -1532,13 +1726,15 @@ public int checkTags (String find, String replace) {
     }
   }
 
+  /** 
+   Initialize a new collection to be created, or to be opened. 
+  */
   private void initCollection () {
     
-    initRecDef();
-    noteList = new NoteList(recDef);
-    position = new NotePositioned(recDef);
+    // initRecDef();
+    noteList = new NoteList(noteIO.getRecDef());
+    position = new NotePositioned(noteIO.getRecDef());
     noteTable.setModel(noteList);
-    tagsTextSelector.setValueList(noteList.getTagsList());
     noteTree.setModel (noteList.getTagsModel().getModel());
     noteTree.getSelectionModel().setSelectionMode
         (TreeSelectionModel.SINGLE_TREE_SELECTION);
@@ -1549,6 +1745,7 @@ public int checkTags (String find, String replace) {
     // setUnsavedChanges(false);
   }
   
+  /*
   private void initRecDef() {
     dict = new DataDictionary();
     recDef = new RecordDefinition(dict);
@@ -1556,7 +1753,7 @@ public int checkTags (String find, String replace) {
     recDef.addColumn(NoteParms.TAGS_DEF);
     recDef.addColumn(NoteParms.LINK_DEF);
     recDef.addColumn(NoteParms.BODY_DEF);
-  }
+  } */
   
   /**
    Sync the list with a Notational Velocity style folder. 
@@ -1721,7 +1918,10 @@ public int checkTags (String find, String replace) {
     if (selectedFile != null) {
       File importFile = selectedFile;
       currentDirectory = importFile;
-      NoteIO importer = new NoteIO (recDef, importFile);
+      NoteIO importer = new NoteIO (
+          importFile, 
+          NoteParms.DEFINED_TYPE, 
+          noteIO.getRecDef());
       try {
         importer.load(noteList);
       } catch (IOException e) {
@@ -1758,6 +1958,9 @@ public int checkTags (String find, String replace) {
     Trouble.getShared().report("I/O Exception", "Trouble");
   }
 
+  /**
+   Close the current notes collection in an orderly fashion. 
+  */
   private void closeFile() {
     if (this.noteFile != null) {
       modIfChanged();
@@ -1911,7 +2114,6 @@ public int checkTags (String find, String replace) {
       statusBar.setFileName("            ", " ");
     } else {
       noteFile = file;
-      noteIO = new NoteIO(recDef, noteFile);
       exporter = new NoteExport(this);
       if (noteList != null) {
         noteList.setSource (file);
@@ -2496,7 +2698,7 @@ public int checkTags (String find, String replace) {
           exporter.generalExport(
             selectedFile,
             noteFile,
-            recDef,
+            noteIO.getRecDef(),
             noteList,
             exportType, 
             selectTagsStr, 
@@ -2598,6 +2800,8 @@ public int checkTags (String find, String replace) {
     exportTabDelimitedMenuItem = new javax.swing.JMenuItem();
     exportTabDelimitedMSMenuItem = new javax.swing.JMenuItem();
     exportXMLMenuItem = new javax.swing.JMenuItem();
+    jSeparator6 = new javax.swing.JPopupMenu.Separator();
+    purgeMenuItem = new javax.swing.JMenuItem();
     editMenu = new javax.swing.JMenu();
     deleteMenuItem = new javax.swing.JMenuItem();
     escapeMenuItem = new javax.swing.JMenuItem();
@@ -2619,6 +2823,7 @@ public int checkTags (String find, String replace) {
     priorMenuItem = new javax.swing.JMenuItem();
     openNoteMenuItem = new javax.swing.JMenuItem();
     getFileInfoMenuItem = new javax.swing.JMenuItem();
+    closeNoteMenuItem = new javax.swing.JMenuItem();
     toolsMenu = new javax.swing.JMenu();
     toolsOptionsMenuItem = new javax.swing.JMenuItem();
     toolsLinkTweakerMenuItem = new javax.swing.JMenuItem();
@@ -2980,6 +3185,15 @@ public int checkTags (String find, String replace) {
     exportMenu.add(exportXMLMenuItem);
 
     fileMenu.add(exportMenu);
+    fileMenu.add(jSeparator6);
+
+    purgeMenuItem.setText("Purge...");
+    purgeMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        purgeMenuItemActionPerformed(evt);
+      }
+    });
+    fileMenu.add(purgeMenuItem);
 
     mainMenuBar.add(fileMenu);
 
@@ -3131,6 +3345,15 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
     }
   });
   noteMenu.add(getFileInfoMenuItem);
+
+  closeNoteMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_K, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+  closeNoteMenuItem.setText("Close Note");
+  closeNoteMenuItem.addActionListener(new java.awt.event.ActionListener() {
+    public void actionPerformed(java.awt.event.ActionEvent evt) {
+      closeNoteMenuItemActionPerformed(evt);
+    }
+  });
+  noteMenu.add(closeNoteMenuItem);
 
   mainMenuBar.add(noteMenu);
 
@@ -3361,10 +3584,23 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     generalExport(NoteExport.TABDELIM_EXPORT_MS_LINKS);
   }//GEN-LAST:event_exportTabDelimitedMSMenuItemActionPerformed
 
+  private void purgeMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_purgeMenuItemActionPerformed
+    if (statusIncluded) {
+      purge();
+    }
+  }//GEN-LAST:event_purgeMenuItemActionPerformed
+
+  private void closeNoteMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closeNoteMenuItemActionPerformed
+    if (statusIncluded) {
+      closeNote();
+    }
+  }//GEN-LAST:event_closeNoteMenuItemActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
   private javax.swing.JMenuItem addReplaceMenuItem;
+  private javax.swing.JMenuItem closeNoteMenuItem;
   private javax.swing.JMenu collectionMenu;
   private javax.swing.JTabbedPane collectionTabbedPane;
   private javax.swing.JMenuItem deleteMenuItem;
@@ -3396,6 +3632,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JSeparator jSeparator3;
   private javax.swing.JSeparator jSeparator4;
   private javax.swing.JSeparator jSeparator5;
+  private javax.swing.JPopupMenu.Separator jSeparator6;
   private javax.swing.JButton launchButton;
   private javax.swing.JPanel listPanel;
   private javax.swing.JMenuItem lowerCaseTagsMenuItem;
@@ -3414,6 +3651,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem propertiesMenuItem;
   private javax.swing.JMenuItem publishNowMenuItem;
   private javax.swing.JMenuItem publishWindowMenuItem;
+  private javax.swing.JMenuItem purgeMenuItem;
   private javax.swing.JMenuItem reloadMenuItem;
   private javax.swing.JMenuItem replaceMenuItem;
   private javax.swing.JMenuItem saveAllMenuItem;

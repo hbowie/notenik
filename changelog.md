@@ -1,4 +1,11 @@
 
+## Version 1.70 (2015-08-31)
+
+1. **Added Status Field with Purge Capability**
+
+    A Status field may now be used, by specifying the field contents for a collection through the use of a 'template.txt' file. When a Status field is present, the File menu will include a command to Purge closed notes, optionally copying them to an archive folder before deleting them from the current collection.
+
+
 ## Version 1.60 (2015-03-18)
 
 1. **Added Export for MS Links**
