@@ -1,0 +1,208 @@
+/* 
+
+STYLE SHEET FOR PowerSurgePub.com help files
+Created by Herb Bowie
+
+*/
+
+/* Global Defaults */
+
+h1, h2, h3, h4, h5, h6
+{
+	/* font-family: 'concourse-text', 'Helvetica Neue', Helvetica, Arial, sans-serif; */
+	/* font-family: 'concourse-text', serif; */
+	font-family: 'concourse_t4regular', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+h1
+{
+	/* Page Headings */
+	color: #FF7800;
+	font-size: 20pt;
+	line-height: 28pt;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: normal;
+	letter-spacing: .07em;
+	word-spacing: 0.05em;
+	margin-top: 1em;
+}
+
+h2 {
+	color: #FF7800;
+	font-size: 16pt;
+	line-height: 22pt;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: normal;
+	margin-top: 1.5em;
+	margin-bottom: 0.5em; 
+	padding-bottom: 0pt;
+}
+
+h3
+{
+	color: #F93;
+	font-size: 14pt;
+	line-height: 22pt;
+	font-style: italic;
+	font-variant: normal;
+	font-weight: normal;
+	margin-top: 1em;
+	margin-bottom: 0.6em;
+	padding-bottom: 0pt;
+}
+
+h4
+{
+	color: #FF7800;
+	font-size: 14pt;
+	line-height: 20pt;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: lighter;
+	margin-top: 1em;
+	margin-bottom: 0.6em;
+	padding-bottom: 0pt;
+}
+
+h5
+{
+	color: #FF7800;
+	font-size: 14pt;
+	line-height: 20pt;
+	font-style: italic;
+	font-variant: normal;
+	font-weight: lighter;
+	margin-top: 1em;
+	margin-bottom: 0.6em;
+	padding-bottom: 0pt;
+}
+
+body {
+	color: #000000;
+	text-align: left;
+	/* font-family: Lucida Grande, Verdana, Geneva, Arial, sans-serif; */
+	/* font-family: 'concourse-text', 'Helvetica Neue', Helvetica, Arial, sans-serif; */
+	font-family: 'equity-text', Georgia, 'Times New Roman', Times, serif;
+	font-size: 14pt;
+	line-height: 20pt;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: normal;
+}
+
+/* Default formatting for links. */
+
+a:link {
+	color: inherit;
+	text-decoration: none;
+	border-bottom: none;
+}
+a:active {
+	color: inherit;
+	text-decoration: none;
+	border-bottom: none;
+}
+a:visited {
+	color: inherit;
+	text-decoration: none;
+	border-bottom: none;
+}
+a:hover
+{
+	color: inherit;
+	text-decoration: none;
+	border-bottom: none;
+} 
+
+/* Format normal paragraphs. */
+
+p {
+	color: #000000;
+	text-align: left;
+	/* font-family: Lucida Grande, Verdana, Geneva, Arial, sans-serif; */
+	/* font-family: 'concourse-text', 'Helvetica Neue', Helvetica, Arial, sans-serif; */
+	font-family: 'equity-text', Georgia, 'Times New Roman', Times, serif;
+	font-size: 14pt;
+	line-height: 20pt;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: normal;
+	margin-top: 0;
+	margin-bottom: 1em;
+}
+
+/* Let's style all the links found within normal text. */
+
+p a:link
+{
+	color: #7575CE;
+	text-decoration: none;
+	border-bottom: 1px #6464ae dotted;
+}
+p a:active {
+	color: #7575CE;
+	text-decoration: none;
+	border-bottom: 1px #6464ae solid;
+}
+p a:visited {
+	color: #7575CE;
+	text-decoration: none;
+	border-bottom: 1px #6464ae dotted;
+}
+p a:hover
+{
+	color: #7575CE;
+	text-decoration: none;
+	border-bottom: 1px #6464AE solid;
+} 
+
+.normal {
+
+}
+
+ul li { 
+	margin-top: 10pt; 
+}
+
+
+/* Styles for the User Guides */
+
+#toc ul
+{
+	list-style-type: square;
+}
+
+#toc ul ul
+{
+	list-style-type: disc;
+	font-style: italic;
+	/* color: #999; */
+}
+
+#toc ul li {
+	margin-top: 0;
+}
+
+#toc a:link
+{
+	color: #191919;
+	text-decoration: none;
+}
+
+#toc a:visited {
+	color: #191919;
+	text-decoration: none;
+}
+
+#toc a:active {
+	color: #191919;
+	text-decoration: none;
+}
+
+#toc a:hover {
+	color: #191919;
+	text-decoration: none;
+	border-bottom: 1px #191919 dotted;
+}

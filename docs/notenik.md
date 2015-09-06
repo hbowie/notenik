@@ -1,34 +1,98 @@
-# Notenik
+<h1 id="notenik">Notenik</h1>
 
-* [Table of Contents](#table-of-contents)
-* [Background](#background)
-* [Overview](#overview)
-* [The Notenik Data Format](#the-notenik-data-format)
-    * [Title](#title)
-    * [Tags](#tags)
-    * [Link](#link)
-    * [Author](#author)
-    * [Rating](#rating)
-    * [Type](#type)
-    * [Status](#status)
-    * [Date](#date)
-    * [Mod Date](#mod-date)
-    * [File Size](#file-size)
-    * [Teaser](#teaser)
-    * [Body](#body)
-* [The Notenik Java Class Library](#the-notenik-java-class-library)
-    * [Note I/O Type](#note-io-type)
-* [The Notenik Application](#the-notenik-application)
-    * [Introduction](#introduction)
-    * [Getting Started](#getting-started)
-    * [Collections](#collections)
-    * [Notenik Window](#notenik-window)
-    * [Special Link Operations](#special-link-operations)
-    * [Publish](#publish)
 
-## Table of Contents
+<h2 id="table-of-contents">Table of Contents</h2>
 
-## Background
+<div id="toc">
+  <ul>
+    <li>
+      <a href="#background">Background</a>
+    </li>
+    <li>
+      <a href="#overview">Overview</a>
+    </li>
+    <li>
+      <a href="#the-notenik-data-format">The Notenik Data Format</a>
+      <ul>
+        <li>
+          <a href="#title">Title</a>
+        </li>
+        <li>
+          <a href="#tags">Tags</a>
+        </li>
+        <li>
+          <a href="#link">Link</a>
+        </li>
+        <li>
+          <a href="#author">Author</a>
+        </li>
+        <li>
+          <a href="#rating">Rating</a>
+        </li>
+        <li>
+          <a href="#type">Type</a>
+        </li>
+        <li>
+          <a href="#status">Status</a>
+        </li>
+        <li>
+          <a href="#date">Date</a>
+        </li>
+        <li>
+          <a href="#mod-date">Mod Date</a>
+        </li>
+        <li>
+          <a href="#file-size">File Size</a>
+        </li>
+        <li>
+          <a href="#teaser">Teaser</a>
+        </li>
+        <li>
+          <a href="#body">Body</a>
+        </li>
+      </ul>
+
+    </li>
+    <li>
+      <a href="#the-notenik-java-class-library">The Notenik Java Class Library</a>
+      <ul>
+        <li>
+          <a href="#note-io-type">Note I/O Type</a>
+        </li>
+      </ul>
+
+    </li>
+    <li>
+      <a href="#the-notenik-application">The Notenik Application</a>
+      <ul>
+        <li>
+          <a href="#introduction">Introduction</a>
+        </li>
+        <li>
+          <a href="#getting-started">Getting Started</a>
+        </li>
+        <li>
+          <a href="#collections">Collections</a>
+        </li>
+        <li>
+          <a href="#notenik-window">Notenik Window</a>
+        </li>
+        <li>
+          <a href="#special-link-operations">Special Link Operations</a>
+        </li>
+        <li>
+          <a href="#publish">Publish</a>
+        </li>
+      </ul>
+
+    </li>
+  </ul>
+
+</div>
+
+
+<h2 id="background">Background</h2>
+
 
 I've been programming computers for over four decades now, and over time I've become increasingly interested in how to simplify the storage and manipulation of data. 
 
@@ -40,11 +104,13 @@ What if bank accounts didn't exist? What if, when someone paid you money for som
 
 To me, that's similar to the situation many of us face with computers today. Let's say I want to create some information about a new business I want to launch. So I decide to put some of the information in my Microsoft Word account, some in my PowerPoint account, and some in my QuickBooks account. Wouldn't it be better to be able to create the information first, and later have the flexibility to later move it around however and whenever I want?
 
-## Overview
+<h2 id="overview">Overview</h2>
+
 
 Notenik is really three things: a data format, a set of Java classes for reading and writing information in this format, and a Java desktop application that enables users to create and access notes in this format. 
 
-## The Notenik Data Format
+<h2 id="the-notenik-data-format">The Notenik Data Format</h2>
+
 
 Computer information generally falls into one of two types:
 
@@ -82,122 +148,133 @@ A note file may be stored with any of the following file extensions:
 
 At one end of a continuum, a note may contain an unlimited number of fields with any field names. More commonly, though, a note will contain a certain number of typical fields. These typical fields, also known as the Notenik core fields, are defined as follows.  
 
+<h3 id="title">Title</h3>
 
-### Title
 
 Each note in a collection must have a unique title. If the contents of the note file does not contain a title field, then the file name (without the extension) will be used as the title of the note. 
 
-### Tags
+<h3 id="tags">Tags</h3>
+
 
 Tags may be used to group related notes into categories. One or more tags may be associated with each note, and each tag may contain one or more sub-tags. A period or a slash may be used to separate one level of a tag from the next level, with the period being preferred. A comma or a semi-colon may be used to separate one tag from another, with the comma being preferred.
 
 The "Favorites" tag may be used to identify favored notes within a collection. The "Startup" tag may be used to identify notes you wish to have opened by an application when it first starts. 
 
-### Link
+<h3 id="link">Link</h3>
+
 
 A Hyperlink (aka URL).
 
-### Author
+<h3 id="author">Author</h3>
+
 
 The author(s) of the note.
 
-### Rating
+<h3 id="rating">Rating</h3>
+
 
 Your rating of the note, on a scale of one to five.
 
-### Type
+<h3 id="type">Type</h3>
+
 
 The type of note. 
 
-### Status
+<h3 id="status">Status</h3>
+
 
 The state of the note, indicating its degree of completion. Each possible status value consists of a single integer in the range of 0 - 9, plus an accompanying label. The integer allows the values to be sorted into a meaningful sequence, while the label provides a brief definition for each status value. The following status values are normally used. 
 
-#### 0 - Suggested
+* 0 - Suggested
 
-#### 1 - Proposed
+* 1 - Proposed
 
-#### 2 - Approved
+* 2 - Approved
 
-#### 3 - Planned
+* 3 - Planned
 
-#### 4 - Active
+* 4 - Active
 
-#### 5 - Held
+* 5 - Held
 
-#### 6 - Completed
+* 6 - Completed
 
-#### 7 - Pending Recurs
+* 7 - Pending Recurs
 
-#### 8 - Canceled
+* 8 - Canceled
 
-#### 9 - Closed
+* 9 - Closed
 
-### Date
+<h3 id="date">Date</h3>
+
 
 The date of the note, such as the date the note was officially published, or a due date for the note. The date may be expressed in any of a number of common formats. It may also be a partial date, such as a year, or a year and a month. It may or may not contain a specific time of day. 
 
-### Mod Date
+<h3 id="mod-date">Mod Date</h3>
+
 
 This is the last modification of the note, as maintained by the file system (not specified within the contents of the note).
 
-### File Size
+<h3 id="file-size">File Size</h3>
+
 
 This is the size of the file, in characters, as maintained by the file system (not specified within the contents of the note). 
 
-### Teaser
+<h3 id="teaser">Teaser</h3>
+
 
 An excerpt from the note used as a teaser in a list of notes. The teaser may be formatted using Markdown.
 
-### Body
+<h3 id="body">Body</h3>
+
 
 The body, or primary text, of the note. In this case the field value is expected on following lines. The Body field will always be treated as the final field in a note, to avoid having portions of the document inadvertently treated as fields. 
 
-## The Notenik Java Class Library
+<h2 id="the-notenik-java-class-library">The Notenik Java Class Library</h2>
+
 
 Available on GitHub at [github.com/hbowie](https://github.com/hbowie/). Executables available at PowerSurgePub.com. All Java packages are prefixed with ‘com.powersurgepub’. Primary Notenik libraries are in com.powersurgepub.psdatalib.notenik’.
 
-### Note I/O Type
+<h3 id="note-io-type">Note I/O Type</h3>
+
 
 When notes are read from disk, there are several types of input modes that are possible. 
 
-#### 1 - Basic Note
+* 1 - Basic Note
+    Only the following fields are recognized. 
 
-Only the following fields are recognized. 
+    * Title
 
-##### Title
+    * Tags
 
-##### Tags
+    * Link
 
-##### Link
+    * Body
 
-##### Body
 
-#### 2 - Notes Plus
+* 2 - Notes Plus
+    The Basic fields are recognized, plus any other fields found. 
 
-The Basic fields are recognized, plus any other fields found. 
+* 3  - General
+    The note consists of any fields found. 
 
-#### 3  - General
+* 4 - Defined
+    Any fields defined in the Record Definition are recognized. 
 
-The note consists of any fields found. 
+* 5 - Markdown
 
-#### 4 - Defined
+* 6 - Tag
 
-Any fields defined in the Record Definition are recognized. 
+* 7 - Quote
 
-#### 5 - Markdown
+* 8 - Notes Expanded
+    The Basic fields are recognized, plus Author, Date, Status, Rating and Teaser. Body comes after all other fields. 
 
-#### 6 - Tag
+<h2 id="the-notenik-application">The Notenik Application</h2>
 
-#### 7 - Quote
 
-#### 8 - Notes Expanded
+<h3 id="introduction">Introduction</h3>
 
-The Basic fields are recognized, plus Author, Date, Status, Rating and Teaser. Body comes after all other fields. 
-
-## The Notenik Application
-
-### Introduction
 
 Notenik is a desktop software program to help a single user maintain multiple collections of notes.
 
@@ -221,399 +298,346 @@ If so, read on.
 
 If not, just move along -- this is not the app you were looking for. 
 
-### Getting Started
+<h3 id="getting-started">Getting Started</h3>
 
-#### System Requirements
 
-Notenik is written in Java and can run on any reasonably modern operating system, including Mac OS X, Windows and Linux. Notenik requires a Java Runtime Environment (JRE), also known as a Java Virtual Machine (JVM). The version of this JRE/JVM must be at least 6. Visit [www.java.com](http://www.java.com) to download a recent version for most operating systems. Installation happens a bit differently under Mac OS X, but generally will occur fairly automatically when you try to launch a Java app for the first time.
+* System Requirements
+    Notenik is written in Java and can run on any reasonably modern operating system, including Mac OS X, Windows and Linux. Notenik requires a Java Runtime Environment (JRE), also known as a Java Virtual Machine (JVM). The version of this JRE/JVM must be at least 6. Visit [www.java.com](http://www.java.com) to download a recent version for most operating systems. Installation happens a bit differently under Mac OS X, but generally will occur fairly automatically when you try to launch a Java app for the first time.
 
-Because Notenik may be run on multiple platforms, it may look slightly different on different operating systems, and will obey slightly different conventions (using the CMD key on a Mac, vs. an ALT key on a PC, for example).
+    Because Notenik may be run on multiple platforms, it may look slightly different on different operating systems, and will obey slightly different conventions (using the CMD key on a Mac, vs. an ALT key on a PC, for example).
 
-#### Rights
+* Rights
+    Notenik Copyright 2013 - 2015 by Herb Bowie
 
-Notenik Copyright 2013 - 2015 by Herb Bowie
+    Notenik is [open source software](http://opensource.org/osd). Source code is available at [GitHub](http://github.com/hbowie/notenik).
 
-Notenik is [open source software](http://opensource.org/osd). Source code is available at [GitHub](http://github.com/hbowie/notenik).
+    Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+      [www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
 
-  [www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
+    Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+* Installation
+    Download the latest version from [PowerSurgePub.com](http://www.powersurgepub.com/downloads.html). Decompress the downloaded file. Drag the resulting file or folder into the location where you normally store your applications. Double-click on the jar file (or the application, if you've downloaded the Mac app) to launch.
 
-#### Installation
+<h3 id="collections">Collections</h3>
 
-Download the latest version from [PowerSurgePub.com](http://www.powersurgepub.com/downloads.html). Decompress the downloaded file. Drag the resulting file or folder into the location where you normally store your applications. Double-click on the jar file (or the application, if you've downloaded the Mac app) to launch.
-
-### Collections
 
 Notenik can work with multiple collections of notes for each user. However, only one collection can be open at a time. Each collection is stored on disk in a separate folder.
 
 The following commands apply to collections. 
 
-#### File Menu
+* File Menu
 
-##### New
+    * New
+        Creates a new, empty collection.
 
-Creates a new, empty collection.
+    * Open
+        Opens an existing collection.
 
-##### Open
+    * Open Recent
+        Pick an existing collection to open, from a list of collections you’ve recently opened. 
 
-Opens an existing collection.
+        * Clear History
+            Clear the list of recent collections. 
 
-##### Open Recent
 
-Pick an existing collection to open, from a list of collections you’ve recently opened. 
+    * Save As
+        Saves the current collection of notes to a new location on disk. 
 
-###### Clear History
+    * Backup
+        Backs up the current collection by making a copy of it at the specified location. 
 
-Clear the list of recent collections. 
+    * Import
+        Read notes from an external file and add them to the current collection. 
 
-##### Save As
+        * Import from Notenik
 
-Saves the current collection of notes to a new location on disk. 
+        * Import from XML
 
-##### Backup
 
-Backs up the current collection by making a copy of it at the specified location. 
+    * Export
+        Export the notes from the current collection to a separate file or folder (depending on the format chosen). 
 
-##### Import
+        * Notenik
 
-Read notes from an external file and add them to the current collection. 
+        * Tab-Delimited
 
-###### Import from Notenik
+        * Tab-Delimited for MS Links
 
-###### Import from XML
+        * XML
 
-##### Export
 
-Export the notes from the current collection to a separate file or folder (depending on the format chosen). 
+    * Purge
+        Purges closed notes from the current collection, with an option to save purged notes into a separate archive folder.
 
-###### Notenik
 
-###### Tab-Delimited
+* Preferences
 
-###### Tab-Delimited for MS Links
+    * Folder Sync Prefs
+        The Folder Sync application prefs pane allow the user to identify a common folder to which several different Notenik collections can be synced.
 
-###### XML
+        The common folder may then be conveniently accessed using nvAlt.
 
-##### Purge
+        Each collection can have a different prefix assigned, and that prefix will then be used to keep the notes from the different collections separately identified within the common nvAlt folder. The prefix will default to the folder name for the collection, with a trailing 's' removed if one is found, and with a dash added as a separator. A folder name of 'Bookmarks', for example, would result in a prefix of 'Bookmark - ' being appended to the front of each note as it is stored in the common folder.
 
-Purges closed notes from the current collection, with an option to save purged notes into a separate archive folder.
+        The logic for the syncing works as follows.
 
-#### Preferences
+        A sweep of the entire common folder will be performed whenever syncing is first turned on for a collection, and henceforth whenever a collection with syncing already on is opened.
 
-##### Folder Sync Prefs
+        The sweep sync includes the following logic.
 
-The Folder Sync application prefs pane allow the user to identify a common folder to which several different Notenik collections can be synced.
+        * For any nvAlt notes with a matching prefix, where the corresponding note does not already exist within the Notenik collection, the note will be added to the Notenik collection.
 
-The common folder may then be conveniently accessed using nvAlt.
+        * For any Notenik notes where a matching nvAlt note is not found, the note will be added to the nvAlt folder.
 
-Each collection can have a different prefix assigned, and that prefix will then be used to keep the notes from the different collections separately identified within the common nvAlt folder. The prefix will default to the folder name for the collection, with a trailing 's' removed if one is found, and with a dash added as a separator. A folder name of 'Bookmarks', for example, would result in a prefix of 'Bookmark - ' being appended to the front of each note as it is stored in the common folder.
+        * For any Notenik notes where a matching nvAlt note has been updated more recently than the matching Notenik note, the Notenik note will be updated to match the nvAlt note.
 
-The logic for the syncing works as follows.
+        Once folder sync has been turned on for a collection, then every time that Notenik makes an update to any note within that collection, a parallel update will be made to the corresponding note within the common folder.
 
-A sweep of the entire common folder will be performed whenever syncing is first turned on for a collection, and henceforth whenever a collection with syncing already on is opened.
+    * Tags Export Prefs
+        These fields allow you to specify tags to be used to tailor your exports, controlling the data that is exported. 
 
-The sweep sync includes the following logic.
+        * Tags to Suppress
+            Any tags specified here will be removed from all tags fields appearing on exports. This may be useful to suppress tags used for selection at Publish time, as opposed to tags that will appear in the eventual output being created.
 
-* For any nvAlt notes with a matching prefix, where the corresponding note does not already exist within the Notenik collection, the note will be added to the Notenik collection.
+        * Tags to Select
+            Leave this blank to select all tags on any export, including a data export performed as part of a Publish process. Specifying one or more tags here will limit the content of the export to items containing at least one of those tags.
 
-* For any Notenik notes where a matching nvAlt note is not found, the note will be added to the nvAlt folder.
 
-* For any Notenik notes where a matching nvAlt note has been updated more recently than the matching Notenik note, the Notenik note will be updated to match the nvAlt note.
+    * Files Prefs
+        These fields provide some automated processing for folders containing note collections. 
 
-Once folder sync has been turned on for a collection, then every time that Notenik makes an update to any note within that collection, a parallel update will be made to the corresponding note within the common folder.
+        * Backup Frequency
+            Choose one of the following options. 
 
-##### Tags Export Prefs
+            * Occasional Suggestions
 
-These fields allow you to specify tags to be used to tailor your exports, controlling the data that is exported. 
+            * Automatic Backups
 
-###### Tags to Select
+            * Manual Only
 
-Leave this blank to select all tags on any export, including a data export performed as part of a Publish process. Specifying one or more tags here will limit the content of the export to items containing at least one of those tags.
 
-###### Tags to Suppress
+        * Number of Recent Files
+            Specify the number of recent files to make available for easy opening.
 
-Any tags specified here will be removed from all tags fields appearing on exports. This may be useful to suppress tags used for selection at Publish time, as opposed to tags that will appear in the eventual output being created.
+        * At startup, open
+            Automatically open the last file opened, or automatically open a specific file each time Notenik is launched. 
 
-##### Files Prefs
+        * Purge inaccessible files
+            If a recent file can’t be accessed, then choose one of the following options for dealing with this situation. 
 
-These fields provide some automated processing for folders containing note collections. 
+            * Now
 
-###### Backup Frequency
+            * At startup
 
-Choose one of the following options. 
+            * Never
 
-####### Manual Only
 
-####### Occasional Suggestions
 
-####### Automatic Backups
 
-###### Number of Recent Files
+* template.txt file
+    By default, Notenik shows only four fields for a Note: Title, Link, Tags and Body. However, this default may be altered by placing a file named ‘template.txt’ within a Collection’s folder. Such a file should be in the normal Notenik format, although the field names specified need not have any accompanying data. When such a file is found, the field names found in this file will be used as the fields to be displayed and maintained for that Collection. This file should be created using a text editor — not using the Notenik app itself for this purpose. 
 
-Specify the number of recent files to make available for easy opening.
+<h3 id="notenik-window">Notenik Window</h3>
 
-###### At startup, open
-
-Automatically open the last file opened, or automatically open a specific file each time Notenik is launched. 
-
-###### Purge inaccessible files
-
-If a recent file can’t be accessed, then choose one of the following options for dealing with this situation. 
-
-####### Never
-
-####### Now
-
-####### At startup
-
-#### template.txt file
-
-By default, Notenik shows only four fields for a Note: Title, Link, Tags and Body. However, this default may be altered by placing a file named ‘template.txt’ within a Collection’s folder. Such a file should be in the normal Notenik format, although the field names specified need not have any accompanying data. When such a file is found, the field names found in this file will be used as the fields to be displayed and maintained for that Collection. This file should be created using a text editor — not using the Notenik app itself for this purpose. 
-
-### Notenik Window
 
 The main window consists of the following elements. 
 
-#### Toolbar
+* Toolbar
+    A toolbar with multiple buttons appears at the top of the window.
 
-A toolbar with multiple buttons appears at the top of the window.
+    * Launch
+        Launch the Link from the current Note in your Web browser. 
 
-##### OK
+    * -
+        Delete the current Note.
 
-Indicates that you have completed adding/editing the fields for the current Note.
+    * OK
+        Indicates that you have completed adding/editing the fields for the current Note.
 
-##### +
+    * >
+        Display the next Note in the collection.
 
-Clear the data fields and prepare to add a new Note to the collection.
+    * <
+        Display the prior Note in the collection.
 
-##### -
+    * +
+        Clear the data fields and prepare to add a new Note to the collection.
 
-Delete the current Note.
+    * >>
+        Display the last Note in the collection.
 
-##### <<
+    * Search Text
+        A text string you wish to search for. 
 
-Display the first Note in the collection.
+    * Find/Again
+        Looks for the text entered in the field just to the left of this button, and displays the first Note containing this text in any field, ignoring case. After finding the first occurrence, this button's text changes to ‘Again’, to allow you to search again for the next Note containing the specified text.
 
-##### <
+    * <<
+        Display the first Note in the collection.
 
-Display the prior Note in the collection.
 
-##### >
+* Top/Left Pane
+    This consists of two tabs.
 
-Display the next Note in the collection.
+    * List
+        This is a simple list of all notes in the collection, normally sorted in ascending sequence by title.
 
-##### >>
+    * Tags
+        This outline view shows the items grouped into the tags assigned to them. 
 
-Display the last Note in the collection.
 
-##### Launch
+* Bottom/Right Pane
+    This pane shows all the fields for the currently selected note, with the ability to edit those fields. 
 
-Launch the Link from the current Note in your Web browser. 
+* Preferences
 
-##### Search Text
+    * General
+        The program's General Preferences contain a number of options for modifying the program's look and feel. Feel free to experiment with these to find your favorite configuration. Some options may require you to quit and re-launch Notenik before the changes will take effect.
 
-A text string you wish to search for. 
+        * Look and Feel
+            Select from one of the available options to change the overall look and feel of the application.
 
-##### Find/Again
+        * Menu Location
+            If running on a Mac, you may wish to have the menus appear at the top of the screen, rather than at the top of the window.
 
-Looks for the text entered in the field just to the left of this button, and displays the first Note containing this text in any field, ignoring case. After finding the first occurrence, this button's text changes to ‘Again’, to allow you to search again for the next Note containing the specified text.
+        * Check Now
+            Click this button to check for a new version immediately.
 
-#### Top/Left Pane
+        * Deletion: Confirm Deletes?
+            Check the box to have a confirmation dialog shown whenever you attempt to delete the selected Note.
 
-This consists of two tabs.
+        * File Chooser
+            If running on a Mac, you may wish to select AWT rather than Swing, to make your Open and Save dialogs appear more Mac-like. However, Swing dialogs may still appear to handle options that can't be handled by the native AWT chooser.
 
-##### List
+        * SplitPane: Horizontal Split?
+            Check the box to have the **List** and **Tags** appear on the left of the main screen, rather than the top.
 
-This is a simple list of all notes in the collection, normally sorted in ascending sequence by title.
+        * Software Updates: Check Automatically?
+            Check the box to have Notenik check for newer versions whenever it launches.
 
-##### Tags
 
-This outline view shows the items grouped into the tags assigned to them. 
 
-#### Bottom/Right Pane
+<h3 id="special-link-operations">Special Link Operations</h3>
 
-This pane shows all the fields for the currently selected note, with the ability to edit those fields. 
-
-#### Preferences
-
-##### General
-
-The program's General Preferences contain a number of options for modifying the program's look and feel. Feel free to experiment with these to find your favorite configuration. Some options may require you to quit and re-launch Notenik before the changes will take effect.
-
-###### SplitPane: Horizontal Split?
-
-Check the box to have the **List** and **Tags** appear on the left of the main screen, rather than the top.
-
-###### Deletion: Confirm Deletes?
-
-Check the box to have a confirmation dialog shown whenever you attempt to delete the selected Note.
-
-###### Software Updates: Check Automatically?
-
-Check the box to have Notenik check for newer versions whenever it launches.
-
-###### Check Now
-
-Click this button to check for a new version immediately.
-
-###### File Chooser
-
-If running on a Mac, you may wish to select AWT rather than Swing, to make your Open and Save dialogs appear more Mac-like. However, Swing dialogs may still appear to handle options that can't be handled by the native AWT chooser.
-
-###### Look and Feel
-
-Select from one of the available options to change the overall look and feel of the application.
-
-###### Menu Location
-
-If running on a Mac, you may wish to have the menus appear at the top of the screen, rather than at the top of the window.
-
-### Special Link Operations
 
 A dropdown menu appears to the left of the Link field. This offers the following options.
 
-#### Tweak
+* Tweak
+    This option brings up a separate window that allows you to “tweak” the URL in various ways. 
 
-This option brings up a separate window that allows you to “tweak” the URL in various ways. 
+    * Launch
+        To launch the output link in your preferred web browser. 
 
-##### Input Link
+    * Put
+        Push the output link back to the Link field in the main Notenik window. 
 
-Enter the input link, or use the one carried over from the Link field. 
+    * Tweak
+        Adjust the link to make it more readable. 
 
-##### Output Link
+    * Remove SharePoint Cruft?
+        Check this box to have the Tweak operation attempt to remove URL cruft typically created by SharePoint. 
 
-This is the resulting link, after any tweaks. 
+    * Get
+        Use this button to retrieve the URL from the Link field. 
 
-##### Get
+    * Copy
+        Copy the output link to the clipboard. 
 
-Use this button to retrieve the URL from the Link field. 
+    * Insert Redirect?
+        Check this box to insert a redirect (specified in the Link Tweaker Prefs) before the input URL. 
 
-##### Tweak
+    * Show spaces as spaces?
+        Check this box to convert %20 strings back to spaces, for improved readability. 
 
-Adjust the link to make it more readable. 
+    * Input Link
+        Enter the input link, or use the one carried over from the Link field. 
 
-##### Launch
+    * Output Link
+        This is the resulting link, after any tweaks. 
 
-To launch the output link in your preferred web browser. 
 
-##### Copy
+* Disk File
+    This option will allow you to select a local disk file to be referenced via the Link field. 
 
-Copy the output link to the clipboard. 
+* Launch
+    This option will launch the URL in your favorite Web browser. 
 
-##### Put
+<h3 id="publish">Publish</h3>
 
-Push the output link back to the Link field in the main Notenik window. 
-
-##### Remove SharePoint Cruft?
-
-Check this box to have the Tweak operation attempt to remove URL cruft typically created by SharePoint. 
-
-##### Insert Redirect?
-
-Check this box to insert a redirect (specified in the Link Tweaker Prefs) before the input URL. 
-
-##### Show spaces as spaces?
-
-Check this box to convert %20 strings back to spaces, for improved readability. 
-
-#### Disk File
-
-This option will allow you to select a local disk file to be referenced via the Link field. 
-
-#### Launch
-
-This option will launch the URL in your favorite Web browser. 
-
-### Publish
 
 The publish option allows you to easily publish your Notes in a variety of useful formats.
 
-#### Publish Window
+* Publish Window
+    To begin the publication process, select the **Publish...** command from the **File** menu.
 
-To begin the publication process, select the **Publish...** command from the **File** menu.
+    You will then see a window with the following fields available to you.
 
-You will then see a window with the following fields available to you.
+    * Publish Script
+        Specify the location of the script to be used. The PSTextMerge templating system is the primary scripting language used for publishing. A PSTextMerge script will usually end with a '.tcz' file extension.
 
-##### Publish to
+    * Templates
+        This is the address of a folder containing one or more publishing templates. This will default to the location of the templates provided along with the application executable. You may use the Browse button above and to the right to pick a different location, if you have your own templates you wish to use for publishing.
 
-You may use the Browse button above and to the right to select a folder on your computer to which you wish to publish your Notes. You may also enter or modify the path directly in the text box. When modifying this field, you will be prompted to specify whether you wish to update the existing publication location, or add a new one. By specifying that you wish to add a new one, you may create multiple publications, and then later select the publication of interest by using the drop-down arrow to the right of this field.
+    * View
+        Select the local file location or the equivalent URL location.
 
-##### Equivalent URL
+    * View Now
+        Press this button to view the resulting Web site in your Web browser.
 
-If the folder to which you are publishing will be addressable from the World-Wide Web, then enter its Web address here.
+    * Select
+        Use the drop-down list to select the template you wish to use.
 
-##### Templates
+        * Favorites Plus
+            This template will produce the following files and formats.
 
-This is the address of a folder containing one or more publishing templates. This will default to the location of the templates provided along with the application executable. You may use the Browse button above and to the right to pick a different location, if you have your own templates you wish to use for publishing.
+            * index.html
+                This file is an index file with links to the other files. You can browse this locally by selecting **Browse local index** from the **File** menu.
 
-##### Select
+            * favorites.html
+                This file tries to arrange all of the Notes you have tagged as "Favorites" into a four-column format that will fit on a single page.
 
-Use the drop-down list to select the template you wish to use.
+            * bookmark.html
+                This file formats your URLs in the time-honored Netscape bookmarks format, suitable for import into almost any Web browser or URL manager.
 
-###### Favorites Plus
+            * outline.html
+                This is a dynamic html file that organizes your URLs within your tags, allowing you to reveal/disclose selected tags.
 
-This template will produce the following files and formats.
 
-####### index.html
 
-This file is an index file with links to the other files. You can browse this locally by selecting **Browse local index** from the **File** menu.
+    * Publish to
+        You may use the Browse button above and to the right to select a folder on your computer to which you wish to publish your Notes. You may also enter or modify the path directly in the text box. When modifying this field, you will be prompted to specify whether you wish to update the existing publication location, or add a new one. By specifying that you wish to add a new one, you may create multiple publications, and then later select the publication of interest by using the drop-down arrow to the right of this field.
 
-####### favorites.html
+    * Apply
+        Press this button to apply the selected template. This will copy the contents of the template folder to the location specified above as the Publish to location.
 
-This file tries to arrange all of the Notes you have tagged as "Favorites" into a four-column format that will fit on a single page.
+    * Publish Now
+        Press this button to publish to the currently displayed location. Note that, if you've specified 'On Demand', then this is the only time that publication will occur.
 
-####### bookmark.html
+    * Equivalent URL
+        If the folder to which you are publishing will be addressable from the World-Wide Web, then enter its Web address here.
 
-This file formats your URLs in the time-honored Netscape bookmarks format, suitable for import into almost any Web browser or URL manager.
 
-####### outline.html
+* Preferences
 
-This is a dynamic html file that organizes your URLs within your tags, allowing you to reveal/disclose selected tags.
+    * Favorites Prefs
 
-##### Apply
+        * Favorites Rows
+            Specify the maximum number of rows you wish to appear on the Favorites page.
 
-Press this button to apply the selected template. This will copy the contents of the template folder to the location specified above as the Publish to location.
+        * Open Startup Tags at Program Launch?
+            Indicate whether you want Notes tagged with "Startup" launched within your Web browser whenever Notenik starts.
 
-##### Publish Script
+        * Favorites Tags
+            Specify the tags that you'd like Favorites pages to be generated for. The default is 'Favorites', but you may specify whatever you'd like here, separating separate tags with commas. Each tag identified here will have a separate page generated with a name matching the tag.
 
-Specify the location of the script to be used. The PSTextMerge templating system is the primary scripting language used for publishing. A PSTextMerge script will usually end with a '.tcz' file extension.
+        * Home Link
+            Specify the desired link from the Favorites page to a Home page.
 
-##### Publish Now
+        * Favorites Columns
+            Specify the number of columns you wish to appear on the Favorites page.
 
-Press this button to publish to the currently displayed location. Note that, if you've specified 'On Demand', then this is the only time that publication will occur.
 
-##### View
 
-Select the local file location or the equivalent URL location.
-
-##### View Now
-
-Press this button to view the resulting Web site in your Web browser.
-
-#### Preferences
-
-##### Favorites Prefs
-
-###### Open Startup Tags at Program Launch?
-
-Indicate whether you want Notes tagged with "Startup" launched within your Web browser whenever Notenik starts.
-
-###### Favorites Tags
-
-Specify the tags that you'd like Favorites pages to be generated for. The default is 'Favorites', but you may specify whatever you'd like here, separating separate tags with commas. Each tag identified here will have a separate page generated with a name matching the tag.
-
-###### Home Link
-
-Specify the desired link from the Favorites page to a Home page.
-
-###### Favorites Columns
-
-Specify the number of columns you wish to appear on the Favorites page.
-
-###### Favorites Rows
-
-Specify the maximum number of rows you wish to appear on the Favorites page.
 

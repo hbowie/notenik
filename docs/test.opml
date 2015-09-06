@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<opml version="1.0">
+  <head>
+    <title>test</title>
+    <expansionState>0,2,3</expansionState>
+  </head>
+  <body>
+    <outline text="Heading 1">
+      <outline text="Table of Contents"/>
+      <outline text="Heading 2">
+        <outline text="Heading 3">
+          <outline text="List Item 1"/>
+          <outline text="List Item 2"/>
+          <outline text="List Item 3"/>
+        </outline>
+      </outline>
+    </outline>
+  </body>
+</opml>
