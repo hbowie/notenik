@@ -1699,6 +1699,7 @@ public int checkTags (String find, String replace) {
     gb.add(lastModDateText);
     
     mainSplitPane.setRightComponent(notePanel);
+    mainSplitPane.setResizeWeight(0.5);
     
     if (tagsTextSelector != null) {
       tagsTextSelector.setValueList(noteList.getTagsList());
