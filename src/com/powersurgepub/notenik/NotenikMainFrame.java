@@ -28,10 +28,12 @@ package com.powersurgepub.notenik;
   import com.powersurgepub.psdatalib.tabdelim.*;
   import com.powersurgepub.psdatalib.txbio.*;
   import com.powersurgepub.pspub.*;
+  import com.powersurgepub.pstextio.*;
   import com.powersurgepub.psutils.*;
   import com.powersurgepub.urlvalidator.*;
   import com.powersurgepub.xos2.*;
   import java.awt.*;
+  import java.awt.datatransfer.*;
   import java.awt.event.*;
   import java.io.*;
   import java.net.*;
@@ -60,7 +62,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "1.70";
+  public static final String PROGRAM_VERSION = "1.80";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -202,6 +204,11 @@ public class NotenikMainFrame
   
   private             FolderSyncPrefs     folderSyncPrefs;
   private             String              oldTitle = "";
+  
+  // System ClipBoard fields
+  boolean             clipBoardOwned = false;
+  Clipboard           clipBoard = null;
+  Transferable        clipContents = null;
 
   /** Creates new form NotenikMainFrame */
   public NotenikMainFrame() {
@@ -336,7 +343,7 @@ public class NotenikMainFrame
 
     // Automatically open the last file opened, if any
 
-    // note = new Note();
+    // newNote = new Note();
     // displayNote();
     // String lastFolderString = userPrefs.getPref (FavoritesPrefs.LAST_FILE, "");
     FileSpec lastFileSpec = filePrefs.getStartupFileSpec();
@@ -345,9 +352,7 @@ public class NotenikMainFrame
     if (lastFolderString != null
         && lastFolderString.length() > 0) {
       File lastFolder = new File (lastFolderString);
-      if (lastFolder.exists()
-          && lastFolder.isDirectory()
-          && lastFolder.canRead()) {
+      if (FileUtils.isGoodInputDirectory(lastFolder)) {
         if (lastFileSpec != null) {
           lastTitle = lastFileSpec.getLastTitle();
         }
@@ -403,6 +408,15 @@ public class NotenikMainFrame
       tagsTextSelector.setText (selectedTags);
     }
   }
+  
+  /**
+   Add one note if the list is empty. 
+  */
+  private void addFirstNoteIfListEmpty() {
+    if (noteList.size() == 0) {
+      addFirstNote();
+    }
+  }
 
   /**
    Add the first Note for a new collection.
@@ -418,16 +432,16 @@ public class NotenikMainFrame
     note.setBody("Home to Notenik");
 
     saveNote(note);
-    addNoteToList ();
+    addNoteToList();
     noteList.fireTableDataChanged();
 
     modified = false;
   }
   
   /**
-   Saves a note in its primary location and in its sync folder, if specified. 
+   Saves a newNote in its primary location and in its sync folder, if specified. 
   
-   @param note The note to be saved. 
+   @param note The newNote to be saved. 
   */
   protected void saveNote(Note note) {
     try {
@@ -1030,7 +1044,7 @@ public int checkTags (String find, String replace) {
   }
 
   /**
-   Respond when user selects a note from the tags tree.
+   Respond when user selects a newNote from the tags tree.
    */
   private void selectBranch () {
 
@@ -1202,7 +1216,7 @@ public int checkTags (String find, String replace) {
             "Duplicate Found");
         modOK = false;
       } else {
-        // Modify note on disk
+        // Modify newNote on disk
         note.setLastModDateToday();
         String oldDiskLocation = note.getDiskLocation();
         saveNote(note);
@@ -1221,7 +1235,7 @@ public int checkTags (String find, String replace) {
         if (position.isNewNote()) {
           if (note.hasKey()) {
             addNoteToList ();
-          } // end if we have note worth adding
+          } // end if we have newNote worth adding
         } else {
           noteList.modify(position);
         }
@@ -1233,7 +1247,7 @@ public int checkTags (String find, String replace) {
   } // end modIfChanged method
   
   /**
-   Try to open the current note in the local app for the file type. 
+   Try to open the current newNote in the local app for the file type. 
   */
   private void openNote() {
     boolean ok = modIfChanged();
@@ -1329,10 +1343,7 @@ public int checkTags (String find, String replace) {
   }
 
   private void savePrefs () {
-    if (noteFile != null
-        && noteFile.exists()
-        && noteFile.isDirectory()
-        && noteFile.canRead()) {
+    if (FileUtils.isGoodInputDirectory(noteFile)) {
       userPrefs.setPref (FavoritesPrefs.LAST_FILE, noteFile.toString());
     }
     userPrefs.setPref (FavoritesPrefs.PREFS_LEFT, this.getX());
@@ -1399,10 +1410,7 @@ public int checkTags (String find, String replace) {
     modIfChanged();
     saveFile();
     NotePositioned savePosition = position;
-    if (noteFile != null
-        && noteFile.exists()
-        && noteFile.isDirectory()
-        && noteFile.canRead()) {
+    if (FileUtils.isGoodInputDirectory(noteFile)) {
       openFile (noteFile, "");
       position = savePosition;
       positionAndDisplay();
@@ -1416,19 +1424,14 @@ public int checkTags (String find, String replace) {
     closeFile();
     fileChooser.setDialogTitle ("Open Notes Collection");
     fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-    if (currentDirectory != null
-        && currentDirectory.exists()
-        && currentDirectory.isDirectory()
-        && currentDirectory.canRead()) {
+    if (FileUtils.isGoodInputDirectory(noteFile)) {
       fileChooser.setCurrentDirectory (currentDirectory);
     }
 
     File selectedFile = null;
     selectedFile = fileChooser.showOpenDialog(this);
     if (selectedFile != null) {
-      if (selectedFile.exists()
-          && selectedFile.isDirectory()
-          && selectedFile.canRead()) {
+      if (FileUtils.isGoodInputDirectory(selectedFile)) {
         openFile (selectedFile, "");
       } else {
         trouble.report ("Trouble opening file " + selectedFile.toString(),
@@ -1483,6 +1486,7 @@ public int checkTags (String find, String replace) {
     } catch (IOException e) {
       ioException(e);
     }
+    addFirstNoteIfListEmpty();
     buildNoteTabs();
     collectionWindow.newNoteFolder(noteList, noteIO);
     noteList.fireTableDataChanged();
@@ -1549,9 +1553,7 @@ public int checkTags (String find, String replace) {
       if (purgeTarget == null) {
         option = purgeCancel;
       } else {
-        if (purgeTarget.exists()
-            && purgeTarget.isDirectory()
-            && purgeTarget.canRead()) {
+        if (FileUtils.isGoodInputDirectory(purgeTarget)) {
           purgeIO = new NoteIO(purgeTarget, NoteParms.DEFINED_TYPE, noteIO.getRecDef());
         } else {
           purgeTarget = null;
@@ -1604,7 +1606,7 @@ public int checkTags (String find, String replace) {
               purged++;
             } 
           } // End if OK to Delete
-        } // end if note is a candidate for deletion
+        } // end if newNote is a candidate for deletion
         if (! deleted) {
           workIndex++;
         }
@@ -1639,11 +1641,11 @@ public int checkTags (String find, String replace) {
     Note note = position.getNote();
     String closedStr = ItemStatusConfig.getShared().getClosedString();
     statusWidget.setText(closedStr);
-    // note.setStatus(ItemStatusConfig.getShared().getClosedString());
+    // newNote.setStatus(ItemStatusConfig.getShared().getClosedString());
   }
   
   /**
-   Build the user interface to view and update one note. 
+   Build the user interface to view and update one newNote. 
   */
   private void buildNoteTabs() {
     
@@ -1782,9 +1784,7 @@ public int checkTags (String find, String replace) {
     
     if (ok) {
       syncFolder = new File (syncFolderString);
-      if (syncFolder.exists()
-          && syncFolder.isDirectory()
-          && syncFolder.canRead()) {
+      if (FileUtils.isGoodInputDirectory(syncFolder)) {
       } else {
         Trouble.getShared().report(
             this, 
@@ -1847,9 +1847,9 @@ public int checkTags (String find, String replace) {
               } else {
                 i++;
               }
-            } // end while looking for a matching note
+            } // end while looking for a matching newNote
             if ((! found)) {
-              // Add new nvAlt note to Notenik collection
+              // Add new nvAlt newNote to Notenik collection
               Note syncNote = noteIO.getNote(nextFile, syncPrefix);
               syncNote.setLastModDateToday();
               try {
@@ -1909,10 +1909,7 @@ public int checkTags (String find, String replace) {
 
     fileChooser.setDialogTitle ("Import Notes");
     fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-    if (currentDirectory != null
-        && currentDirectory.exists()
-        && currentDirectory.isDirectory()
-        && currentDirectory.canRead()) {
+    if (FileUtils.isGoodInputDirectory(currentDirectory)) {
       fileChooser.setCurrentDirectory (currentDirectory);
     }
     File selectedFile = fileChooser.showOpenDialog(this);
@@ -1939,10 +1936,7 @@ public int checkTags (String find, String replace) {
 
     fileChooser.setDialogTitle ("Import Notes from XML");
     fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-    if (currentDirectory != null
-        && currentDirectory.exists()
-        && currentDirectory.isDirectory()
-        && currentDirectory.canRead()) {
+    if (FileUtils.isGoodInputDirectory(currentDirectory)) {
       fileChooser.setCurrentDirectory (currentDirectory);
     }
     File selectedFile = fileChooser.showOpenDialog(this);
@@ -2037,10 +2031,7 @@ public int checkTags (String find, String replace) {
   private void saveFileAs () {
     fileChooser.setDialogTitle ("Save Notes to File");
     fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-    if (currentDirectory != null
-        && currentDirectory.exists()
-        && currentDirectory.isDirectory()
-        && currentDirectory.canRead()) {
+    if (FileUtils.isGoodInputDirectory(currentDirectory)) {
       fileChooser.setCurrentDirectory (currentDirectory);
       fileChooser.setSelectedFile (currentDirectory);
     }
@@ -2058,10 +2049,7 @@ public int checkTags (String find, String replace) {
  
     fileChooser.setDialogTitle ("Select Folder for New Note Collection");
     fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-    if (currentDirectory != null
-        && currentDirectory.exists()
-        && currentDirectory.isDirectory()
-        && currentDirectory.canRead()) {
+    if (FileUtils.isGoodInputDirectory(currentDirectory)) {
       fileChooser.setCurrentDirectory (currentDirectory);
       fileChooser.setSelectedFile (currentDirectory);
     }
@@ -2077,7 +2065,34 @@ public int checkTags (String find, String replace) {
       // newNote();
       addFirstNote();
     }
-    
+  }
+  
+  /**
+   Generate a template file containing all supported note fields. 
+  */
+  public void generateTemplate() {
+ 
+    fileChooser.setDialogTitle ("Select Folder for Note Template");
+    fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+    if (FileUtils.isGoodInputDirectory(currentDirectory)) {
+      fileChooser.setCurrentDirectory (currentDirectory);
+      fileChooser.setSelectedFile (currentDirectory);
+    }
+    File selectedFile = fileChooser.showSaveDialog (this);
+    if(selectedFile != null) {
+      NoteParms noteParms = new NoteParms(NoteParms.NOTES_EXPANDED_TYPE);
+      RecordDefinition recDef = noteParms.getRecDef();
+      Note templateNote = new Note(recDef);
+      templateNote.setTitle("The unique title for this note");
+      templateNote.setTags("One or more tags, separated by commas");
+      templateNote.setLink("http://anyurl.com");
+      templateNote.setStatus("One of a number of states");
+      templateNote.setBody("The body of the note");
+      File templateFile = new File(selectedFile, "template.txt");
+      NoteIO templateIO = new NoteIO(selectedFile);
+      templateIO.save(templateNote, templateFile, true); 
+      // addFirstNote();
+    }
   }
   
   /**
@@ -2115,6 +2130,7 @@ public int checkTags (String find, String replace) {
       statusBar.setFileName("            ", " ");
     } else {
       noteFile = file;
+      noteIO = new NoteIO(file);
       exporter = new NoteExport(this);
       if (noteList != null) {
         noteList.setSource (file);
@@ -2151,7 +2167,7 @@ public int checkTags (String find, String replace) {
             displayed = true;
           } // end if we have a file
         } // end if we have a link
-      } // end if we have a note
+      } // end if we have a newNote
     } // end if we have a position
     if (! displayed) {
       trouble.report ("No file to display",
@@ -2665,6 +2681,14 @@ public int checkTags (String find, String replace) {
           } 
           break;
 
+        case NoteExport.OPML_EXPORT:
+          fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+          fileChooser.setCurrentDirectory(noteFile.getParentFile());
+          fileChooser.setSelectedFile
+            (new File(noteFile.getParentFile(), noteFile.getName() + ".opml"));
+          selectedFile = fileChooser.showSaveDialog(this);
+          break;
+        
         case NoteExport.XML_EXPORT:
           fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
           fileChooser.setCurrentDirectory(noteFile.getParentFile());
@@ -2695,15 +2719,22 @@ public int checkTags (String find, String replace) {
         noValidExportDestination();
       } 
       if (ok) {
-        exported = 
-          exporter.generalExport(
-            selectedFile,
-            noteFile,
-            noteIO.getRecDef(),
-            noteList,
-            exportType, 
-            selectTagsStr, 
-            suppressTagsStr);
+        if (exportType == NoteExport.OPML_EXPORT) {
+          exported = 
+            exporter.OPMLExport(
+              selectedFile,
+              noteList);
+        } else {
+          exported = 
+            exporter.generalExport(
+              selectedFile,
+              noteFile,
+              noteIO.getRecDef(),
+              noteList,
+              exportType, 
+              selectTagsStr, 
+              suppressTagsStr);
+        }
 
         if (ok && exported >= 0) {
           JOptionPane.showMessageDialog(this,
@@ -2734,6 +2765,76 @@ public int checkTags (String find, String replace) {
   private void noValidExportDestination() {
     Trouble.getShared().report ("No valid export destination specified",
         "Export Aborted");
+  }
+  
+  /**
+   Copy the current newNote to the system clipboard. 
+   */
+  private void copyNote() {
+    boolean noNoteSelected = true;
+    if (position != null) {
+      Note note = position.getNote();
+      if (note != null) {
+        noNoteSelected = false;
+        TextLineWriter writer = new ClipboardMaker();
+        noteIO.save(note, writer);
+      }
+    }
+    
+    if (noNoteSelected) {
+      trouble.report ("Select a Note before trying to copy it", 
+          "No Note Selected");
+    } 
+  }
+  
+  /**
+   Paste note from clipboard. 
+  */
+  private void pasteNote() {
+
+    boolean ok = false;
+    boolean modOK = modIfChanged();
+    Note newNote = null;
+    if (modOK) {
+      ok = true;
+      String noteText = "";
+      TextLineReader reader = new ClipboardReader();
+      newNote = noteIO.getNote(reader);
+      if (newNote == null 
+          || (! newNote.hasTitle()) 
+          || (! newNote.hasKey())
+          || (newNote.getTitle().length() == 0)) {
+        ok = false;
+      }
+    }
+    
+    if (ok) {
+      String newFileName = newNote.getFileName();
+        if (noteIO.exists(newFileName)) {
+          trouble.report (this, 
+            "A Note already exists with the same What field",
+            "Duplicate Found");
+        ok = false;
+      }
+    }
+    
+    if (ok) {
+      newNote.setLastModDateToday();
+      position = new NotePositioned(noteIO.getRecDef());
+      position.setIndex (noteList.size());
+      position.setNote(newNote);
+      position.setNewNote(true);
+      fileName = "";
+      displayNote();
+      saveNote(newNote);
+      addNoteToList ();
+    }
+    
+    if (! ok) {
+      trouble.report ("Trouble pasting new note from Clipboard",
+          "Clipboard Error");
+    }
+    
   }
 
   /**
@@ -2781,6 +2882,7 @@ public int checkTags (String find, String replace) {
     mainMenuBar = new javax.swing.JMenuBar();
     fileMenu = new javax.swing.JMenu();
     fileNewMenuItem = new javax.swing.JMenuItem();
+    generateTemplateMenuItem = new javax.swing.JMenuItem();
     openMenuItem = new javax.swing.JMenuItem();
     openRecentMenu = new javax.swing.JMenu();
     fileSaveMenuItem = new javax.swing.JMenuItem();
@@ -2798,6 +2900,7 @@ public int checkTags (String find, String replace) {
     importXMLMenuItem = new javax.swing.JMenuItem();
     exportMenu = new javax.swing.JMenu();
     exportNotenikMenuItem = new javax.swing.JMenuItem();
+    exportOPML = new javax.swing.JMenuItem();
     exportTabDelimitedMenuItem = new javax.swing.JMenuItem();
     exportTabDelimitedMSMenuItem = new javax.swing.JMenuItem();
     exportXMLMenuItem = new javax.swing.JMenuItem();
@@ -2825,6 +2928,8 @@ public int checkTags (String find, String replace) {
     openNoteMenuItem = new javax.swing.JMenuItem();
     getFileInfoMenuItem = new javax.swing.JMenuItem();
     closeNoteMenuItem = new javax.swing.JMenuItem();
+    copyNoteMenuItem = new javax.swing.JMenuItem();
+    pasteNoteMenuItem = new javax.swing.JMenuItem();
     toolsMenu = new javax.swing.JMenu();
     toolsOptionsMenuItem = new javax.swing.JMenuItem();
     toolsLinkTweakerMenuItem = new javax.swing.JMenuItem();
@@ -3057,6 +3162,14 @@ public int checkTags (String find, String replace) {
     });
     fileMenu.add(fileNewMenuItem);
 
+    generateTemplateMenuItem.setText("Generate Template...");
+    generateTemplateMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        generateTemplateMenuItemActionPerformed(evt);
+      }
+    });
+    fileMenu.add(generateTemplateMenuItem);
+
     openMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
     openMenuItem.setText("Open...");
     openMenuItem.addActionListener(new java.awt.event.ActionListener() {
@@ -3160,6 +3273,14 @@ public int checkTags (String find, String replace) {
       }
     });
     exportMenu.add(exportNotenikMenuItem);
+
+    exportOPML.setText("OPML...");
+    exportOPML.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        exportOPMLActionPerformed(evt);
+      }
+    });
+    exportMenu.add(exportOPML);
 
     exportTabDelimitedMenuItem.setText("Tab-Delimited...");
     exportTabDelimitedMenuItem.addActionListener(new java.awt.event.ActionListener() {
@@ -3355,6 +3476,22 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
     }
   });
   noteMenu.add(closeNoteMenuItem);
+
+  copyNoteMenuItem.setText("Copy Note");
+  copyNoteMenuItem.addActionListener(new java.awt.event.ActionListener() {
+    public void actionPerformed(java.awt.event.ActionEvent evt) {
+      copyNoteMenuItemActionPerformed(evt);
+    }
+  });
+  noteMenu.add(copyNoteMenuItem);
+
+  pasteNoteMenuItem.setText("Paste Note");
+  pasteNoteMenuItem.addActionListener(new java.awt.event.ActionListener() {
+    public void actionPerformed(java.awt.event.ActionEvent evt) {
+      pasteNoteMenuItemActionPerformed(evt);
+    }
+  });
+  noteMenu.add(pasteNoteMenuItem);
 
   mainMenuBar.add(noteMenu);
 
@@ -3597,6 +3734,22 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     }
   }//GEN-LAST:event_closeNoteMenuItemActionPerformed
 
+  private void copyNoteMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_copyNoteMenuItemActionPerformed
+    copyNote();
+  }//GEN-LAST:event_copyNoteMenuItemActionPerformed
+
+  private void pasteNoteMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_pasteNoteMenuItemActionPerformed
+    pasteNote();
+  }//GEN-LAST:event_pasteNoteMenuItemActionPerformed
+
+  private void generateTemplateMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_generateTemplateMenuItemActionPerformed
+    generateTemplate();
+  }//GEN-LAST:event_generateTemplateMenuItemActionPerformed
+
+  private void exportOPMLActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportOPMLActionPerformed
+    generalExport(NoteExport.OPML_EXPORT);
+  }//GEN-LAST:event_exportOPMLActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -3604,12 +3757,14 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem closeNoteMenuItem;
   private javax.swing.JMenu collectionMenu;
   private javax.swing.JTabbedPane collectionTabbedPane;
+  private javax.swing.JMenuItem copyNoteMenuItem;
   private javax.swing.JMenuItem deleteMenuItem;
   private javax.swing.JMenuItem deleteNoteMenuItem;
   private javax.swing.JMenu editMenu;
   private javax.swing.JMenuItem escapeMenuItem;
   private javax.swing.JMenu exportMenu;
   private javax.swing.JMenuItem exportNotenikMenuItem;
+  private javax.swing.JMenuItem exportOPML;
   private javax.swing.JMenuItem exportTabDelimitedMSMenuItem;
   private javax.swing.JMenuItem exportTabDelimitedMenuItem;
   private javax.swing.JMenuItem exportXMLMenuItem;
@@ -3622,6 +3777,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem findMenuItem;
   private javax.swing.JTextField findText;
   private javax.swing.JMenuItem flattenTagsMenuItem;
+  private javax.swing.JMenuItem generateTemplateMenuItem;
   private javax.swing.JMenuItem getFileInfoMenuItem;
   private javax.swing.JMenu helpMenu;
   private javax.swing.JMenu importMenu;
@@ -3648,6 +3804,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem openMenuItem;
   private javax.swing.JMenuItem openNoteMenuItem;
   private javax.swing.JMenu openRecentMenu;
+  private javax.swing.JMenuItem pasteNoteMenuItem;
   private javax.swing.JMenuItem priorMenuItem;
   private javax.swing.JMenuItem propertiesMenuItem;
   private javax.swing.JMenuItem publishNowMenuItem;

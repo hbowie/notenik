@@ -38,12 +38,14 @@ public class NoteExport {
     "Notenik", 
     "Tab-Delimited",
     "Tab-Delimited - MS links",
-    "XML"};
+    "XML",
+    "OPML"};
   
   public static final int NOTENIK_EXPORT = 0;
   public static final int TABDELIM_EXPORT = 1;
   public static final int TABDELIM_EXPORT_MS_LINKS = 2;
   public static final int XML_EXPORT = 3;
+  public static final int OPML_EXPORT = 4;
   
   public static final String NOTENIK = "notenik";
   public static final String NOTE    = "note";
@@ -95,6 +97,8 @@ public class NoteExport {
   private     int                 lineCount = 0;
   private     int                 lineMax   = 30;
   private     int                 columnCount = 0;
+  
+  private     StringConverter     xmlConverter = StringConverter.getXML();
 
   public NoteExport (NotenikMainFrame mainFrame) {
     this.mainFrame = mainFrame;
@@ -276,6 +280,79 @@ public class NoteExport {
     } // end if ok so far
 
     return exported;
+  }
+  
+  /**
+   Export all tags and notes to an OPML outline file. 
+  
+   @param exportFile The file to contain the export. 
+   @param noteList   The list of notes to be exported. 
+  
+   @return Number of outline nodes exported. 
+  */
+  public int OPMLExport(
+      File exportFile,
+      NoteList noteList) {
+    
+    TagsModel tagsModel = noteList.getTagsModel();
+    Counter exported = new Counter();
+    MarkupWriter writer = new MarkupWriter(exportFile, MarkupWriter.OPML_FORMAT);
+    writer.openForOutput();
+    writer.startBody();
+    exportToOPML(writer, tagsModel.getRoot(), exported);
+    writer.endBody();
+    writer.close();
+    // userPrefs.setPref(EXPORT_FOLDER, opmlFile.getParent().toString());
+    Logger.getShared().recordEvent(LogEvent.NORMAL, 
+        "Exported " +
+          String.valueOf(exported) +
+          " Tags and Notes to OPML file at " + 
+          exportFile.toString(), 
+        false);
+    return exported.get();
+  }
+  
+  /**
+   Export one node in the Tags model to the OPML export file. 
+  
+   @param writer The writer to use for the output. 
+   @param node   The node to be exported. 
+   @param exported The counter for the number of nodes exported. 
+  */
+  private void exportToOPML(
+      MarkupWriter writer, 
+      TagsNode node, 
+      Counter exported) {
+    
+    if (node != null) {
+      switch (node.getNodeType()) {
+        case TagsNode.TAG:
+        case TagsNode.ROOT:
+          exported.increment();
+          writer.startOutline(node.toString());
+          TagsNode child = (TagsNode)node.getFirstChild();
+          while (child != null) {
+            exportToOPML (writer, child, exported);
+            child = (TagsNode)child.getNextSibling();
+          }
+          writer.endOutline();
+          break;
+        case TagsNode.ITEM:
+          Note note = (Note)node.getUserObject();
+          exported.increment();
+          writer.startOutline(note.getTitle());
+          if (note.hasLink()) {
+            writer.writeOutline("link: " + note.getLinkAsString());
+          }
+          if (note.hasBody()) {
+            writer.writeOutline("note: " + xmlConverter.convert (note.getBody()));
+          }
+          writer.endOutline();
+          break;
+        default:
+          break;
+      }
+    }
   }
   
   /**
