@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 - 2015 Herb Bowie
+ * Copyright 2009 - 2016 Herb Bowie
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1444,13 +1444,17 @@ public int checkTags (String find, String replace) {
     
     closeFile();
     
+    logNormal("Opening folder " + fileToOpen.toString());
     // Process template file if one exists
     File templateFile = new File(fileToOpen, NoteParms.TEMPLATE_FILE_NAME);
+    if (FileUtils.isGoodInputFile(templateFile)) {
+      logNormal("Template file " + templateFile.toString() + " found with following fields:");
+    } else {
+      logNormal("Template file " + templateFile.toString() + " not found");
+    }
     boolean templateFound = false;
     NoteIO templateIO = null;
-    if (templateFile.exists()
-        && templateFile.isFile()
-        && templateFile.canRead()) {
+    if (FileUtils.isGoodInputFile(templateFile)) {
       // Let the template fields define the record definition
       templateIO = new NoteIO(fileToOpen, NoteParms.NOTES_GENERAL_TYPE);
       templateIO.buildRecordDefinition(); 
@@ -1466,6 +1470,11 @@ public int checkTags (String find, String replace) {
     }
     
     if (templateFound) {
+      RecordDefinition recDef = templateIO.getRecDef();
+      for (int i = 0; i < recDef.getNumberOfFields(); i++) {
+        DataFieldDefinition fieldDef = recDef.getDef(i);
+        logNormal("  " + String.valueOf(i + 1) + ". " + fieldDef.getProperName());
+      }
       noteIO = new NoteIO(
           fileToOpen, 
           NoteParms.DEFINED_TYPE, 
@@ -2130,7 +2139,11 @@ public int checkTags (String find, String replace) {
       statusBar.setFileName("            ", " ");
     } else {
       noteFile = file;
-      noteIO = new NoteIO(file);
+      if (noteIO == null) {
+        noteIO = new NoteIO(file);
+      } else {
+        noteIO.setHomeFolder(file);
+      }
       exporter = new NoteExport(this);
       if (noteList != null) {
         noteList.setSource (file);
@@ -2836,6 +2849,73 @@ public int checkTags (String find, String replace) {
     }
     
   }
+  
+  public void genHTMLtoClipboard() {
+    boolean noNoteSelected = true;
+    boolean ok = true;
+    Note note = null;
+    if (position != null) {
+      note = position.getNote();
+      if (note != null) {
+        noNoteSelected = false;
+        NoteExport exporter = new NoteExport(this);
+        ok = exporter.bodyToHTMLClipboard(note);
+      }
+    }
+    
+    if (noNoteSelected) {
+      trouble.report ("Select a Note before trying to generate HTML", 
+          "No Note Selected");
+    } 
+    
+    if (ok) {
+      logNormal("HTML generated for body of Note " + note.getTitle());
+    }
+  }
+  
+  public void genHTMLtoFile() {
+    boolean noNoteSelected = true;
+    boolean ok = true;
+    Note note = null;
+    File selectedFile = null;
+    if (position != null) {
+      note = position.getNote();
+      if (note != null) {
+        noNoteSelected = false;
+        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        String htmlFolderStr = currentFileSpec.getHTMLFolder();
+        if (htmlFolderStr.length() > 0) {
+          File htmlFolder = new File(htmlFolderStr);
+          if (htmlFolder.exists()) {
+            fileChooser.setCurrentDirectory(htmlFolder);
+            FileName fileName = new FileName(note.getDiskLocation());
+            File htmlFile = new File(fileName.getBase() + ".html");
+            fileChooser.setSelectedFile(htmlFile);
+          }
+        }
+        selectedFile = fileChooser.showSaveDialog(this);
+        if (selectedFile == null) {
+          ok = false;
+          noValidExportDestination();
+        }
+        NoteExport exporter = new NoteExport(this);
+        ok = exporter.bodyToHTMLFile(note, selectedFile);
+      }
+    }
+    
+    if (noNoteSelected) {
+      trouble.report ("Select a Note before trying to generate HTML", 
+          "No Note Selected");
+    } 
+    
+    if (ok) {
+      logNormal("HTML generated for body of Note " + note.getTitle());
+    }
+  }
+  
+  public void logNormal (String msg) {
+    Logger.getShared().recordEvent (LogEvent.NORMAL, msg, false);
+  }
 
   /**
    Show the tips.
@@ -2906,6 +2986,7 @@ public int checkTags (String find, String replace) {
     exportXMLMenuItem = new javax.swing.JMenuItem();
     jSeparator6 = new javax.swing.JPopupMenu.Separator();
     purgeMenuItem = new javax.swing.JMenuItem();
+    jSeparator7 = new javax.swing.JPopupMenu.Separator();
     editMenu = new javax.swing.JMenu();
     deleteMenuItem = new javax.swing.JMenuItem();
     escapeMenuItem = new javax.swing.JMenuItem();
@@ -2930,6 +3011,9 @@ public int checkTags (String find, String replace) {
     closeNoteMenuItem = new javax.swing.JMenuItem();
     copyNoteMenuItem = new javax.swing.JMenuItem();
     pasteNoteMenuItem = new javax.swing.JMenuItem();
+    htmlMenu = new javax.swing.JMenu();
+    htmlToClipboardMenuItem = new javax.swing.JMenuItem();
+    htmlToFile = new javax.swing.JMenuItem();
     toolsMenu = new javax.swing.JMenu();
     toolsOptionsMenuItem = new javax.swing.JMenuItem();
     toolsLinkTweakerMenuItem = new javax.swing.JMenuItem();
@@ -3316,6 +3400,7 @@ public int checkTags (String find, String replace) {
       }
     });
     fileMenu.add(purgeMenuItem);
+    fileMenu.add(jSeparator7);
 
     mainMenuBar.add(fileMenu);
 
@@ -3493,6 +3578,26 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
   });
   noteMenu.add(pasteNoteMenuItem);
 
+  htmlMenu.setText("Gen HTML");
+
+  htmlToClipboardMenuItem.setText("Copy to Clipboard");
+  htmlToClipboardMenuItem.addActionListener(new java.awt.event.ActionListener() {
+    public void actionPerformed(java.awt.event.ActionEvent evt) {
+      htmlToClipboardMenuItemActionPerformed(evt);
+    }
+  });
+  htmlMenu.add(htmlToClipboardMenuItem);
+
+  htmlToFile.setText("Save to File");
+  htmlToFile.addActionListener(new java.awt.event.ActionListener() {
+    public void actionPerformed(java.awt.event.ActionEvent evt) {
+      htmlToFileActionPerformed(evt);
+    }
+  });
+  htmlMenu.add(htmlToFile);
+
+  noteMenu.add(htmlMenu);
+
   mainMenuBar.add(noteMenu);
 
   toolsMenu.setText("Tools");
@@ -3564,7 +3669,8 @@ private void fileSaveAsMenuItemActionPerformed(java.awt.event.ActionEvent evt) {
 }//GEN-LAST:event_fileSaveAsMenuItemActionPerformed
 
 private void fileSaveMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileSaveMenuItemActionPerformed
-  saveFile();
+    modIfChanged();
+    positionAndDisplay();
 }//GEN-LAST:event_fileSaveMenuItemActionPerformed
 
 private void openMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openMenuItemActionPerformed
@@ -3750,6 +3856,14 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     generalExport(NoteExport.OPML_EXPORT);
   }//GEN-LAST:event_exportOPMLActionPerformed
 
+  private void htmlToClipboardMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_htmlToClipboardMenuItemActionPerformed
+    genHTMLtoClipboard();
+  }//GEN-LAST:event_htmlToClipboardMenuItemActionPerformed
+
+  private void htmlToFileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_htmlToFileActionPerformed
+    genHTMLtoFile();
+  }//GEN-LAST:event_htmlToFileActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -3780,6 +3894,9 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem generateTemplateMenuItem;
   private javax.swing.JMenuItem getFileInfoMenuItem;
   private javax.swing.JMenu helpMenu;
+  private javax.swing.JMenu htmlMenu;
+  private javax.swing.JMenuItem htmlToClipboardMenuItem;
+  private javax.swing.JMenuItem htmlToFile;
   private javax.swing.JMenu importMenu;
   private javax.swing.JMenuItem importNotenikMenuItem;
   private javax.swing.JMenuItem importXMLMenuItem;
@@ -3790,6 +3907,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JSeparator jSeparator4;
   private javax.swing.JSeparator jSeparator5;
   private javax.swing.JPopupMenu.Separator jSeparator6;
+  private javax.swing.JPopupMenu.Separator jSeparator7;
   private javax.swing.JButton launchButton;
   private javax.swing.JPanel listPanel;
   private javax.swing.JMenuItem lowerCaseTagsMenuItem;

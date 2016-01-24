@@ -45,6 +45,7 @@ public class PrefsWindow
   private FilePrefs         filePrefs = null;
   private FolderSyncPrefs   folderSyncPrefs;
   private TagsPrefs         tagsPrefs;
+  private HTMLPrefs        htmlPrefs;
   
   /** Creates new form PrefsWindow */
   public PrefsWindow(NotenikMainFrame mainFrame) {
@@ -70,6 +71,9 @@ public class PrefsWindow
     tagsPrefs = new TagsPrefs();
     prefsTabs.addTab ("Tags Export", tagsPrefs);
     
+    htmlPrefs = new HTMLPrefs(mainFrame);
+    prefsTabs.addTab ("HTML Gen", htmlPrefs);
+    
     setupComplete = true;
   }
   
@@ -87,6 +91,9 @@ public class PrefsWindow
     if (folderSyncPrefs != null) {
       folderSyncPrefs.setCollection(currentSpec);
     }
+    if (htmlPrefs != null) {
+      htmlPrefs.setCollection(currentSpec);
+    }
   }
 
   public void savePrefs() {
@@ -97,6 +104,7 @@ public class PrefsWindow
       filePrefs.savePrefs();
     }
     folderSyncPrefs.savePrefs();
+    htmlPrefs.savePrefs();
   }
   
   public WebPrefs getWebPrefs() {
@@ -115,6 +123,10 @@ public class PrefsWindow
     return tagsPrefs;
   }
   
+  public HTMLPrefs getHTMLPrefs() {
+    return htmlPrefs;
+  }
+  
   public JTabbedPane getPrefsTabs() {
     return prefsTabs;
   }
@@ -129,12 +141,16 @@ public class PrefsWindow
 
     prefsTabs = new javax.swing.JTabbedPane();
 
-    setMinimumSize(new java.awt.Dimension(400, 300));
+    setMaximumSize(new java.awt.Dimension(2000, 1600));
+    setMinimumSize(new java.awt.Dimension(800, 600));
     addComponentListener(new java.awt.event.ComponentAdapter() {
       public void componentHidden(java.awt.event.ComponentEvent evt) {
         formComponentHidden(evt);
       }
     });
+
+    prefsTabs.setMaximumSize(new java.awt.Dimension(1200, 800));
+    prefsTabs.setMinimumSize(new java.awt.Dimension(800, 600));
     getContentPane().add(prefsTabs, java.awt.BorderLayout.CENTER);
 
     pack();

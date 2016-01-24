@@ -22,9 +22,11 @@ package com.powersurgepub.notenik;
   import com.powersurgepub.psdatalib.txbio.*;
   import com.powersurgepub.psdatalib.txbmodel.*;
   import com.powersurgepub.psdatalib.tabdelim.*;
+  import com.powersurgepub.pstextio.*;
   import com.powersurgepub.psutils.*;
   import java.io.*;
   import java.util.*;
+  import org.pegdown.*;
   import org.xml.sax.*;
 
 /**
@@ -49,6 +51,8 @@ public class NoteExport {
   
   public static final String NOTENIK = "notenik";
   public static final String NOTE    = "note";
+  
+  private             PegDownProcessor  pegDown;
   
   private             NotenikMainFrame mainFrame;
   
@@ -102,6 +106,23 @@ public class NoteExport {
 
   public NoteExport (NotenikMainFrame mainFrame) {
     this.mainFrame = mainFrame;
+    int pegDownOptions = 0;
+    pegDownOptions = pegDownOptions + Extensions.SMARTYPANTS;
+    pegDown = new PegDownProcessor(pegDownOptions);
+  }
+  
+  public boolean bodyToHTMLClipboard (Note note) {
+    String html = pegDown.markdownToHtml(note.getBody());
+    TextLineReader in  = new StringLineReader(html);
+    TextLineWriter out = new ClipboardMaker();
+    return TextUtils.copyFile(in, out);
+  }
+  
+  public boolean bodyToHTMLFile (Note note, File htmlFile) {
+    String html = pegDown.markdownToHtml(note.getBody());
+    TextLineReader in  = new StringLineReader(html);
+    TextLineWriter out = new FileMaker(htmlFile);
+    return TextUtils.copyFile(in, out);
   }
   
   /**
