@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 - 2015 Herb Bowie
+ * Copyright 2009 - 2016 Herb Bowie
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ package com.powersurgepub.notenik;
  *
  * @author  hbowie
  */
-public class PrefsWindow 
+public class GeneralPrefs 
   extends javax.swing.JFrame
     implements WindowToManage {
   
@@ -45,15 +45,14 @@ public class PrefsWindow
   private FilePrefs         filePrefs = null;
   private FolderSyncPrefs   folderSyncPrefs;
   private TagsPrefs         tagsPrefs;
-  private HTMLPrefs        htmlPrefs;
   
   /** Creates new form PrefsWindow */
-  public PrefsWindow(NotenikMainFrame mainFrame) {
+  public GeneralPrefs(NotenikMainFrame mainFrame) {
 
     this.mainFrame = mainFrame;
     initComponents();
     
-    this.setTitle (Home.getShared().getProgramName() + " Preferences");
+    this.setTitle (Home.getShared().getProgramName() + " General Preferences");
     this.setBounds (100, 100, 600, 400);
 
     commonPrefs = CommonPrefs.getShared();
@@ -70,9 +69,6 @@ public class PrefsWindow
     
     tagsPrefs = new TagsPrefs();
     prefsTabs.addTab ("Tags Export", tagsPrefs);
-    
-    htmlPrefs = new HTMLPrefs(mainFrame);
-    prefsTabs.addTab ("HTML Gen", htmlPrefs);
     
     setupComplete = true;
   }
@@ -91,9 +87,6 @@ public class PrefsWindow
     if (folderSyncPrefs != null) {
       folderSyncPrefs.setCollection(currentSpec);
     }
-    if (htmlPrefs != null) {
-      htmlPrefs.setCollection(currentSpec);
-    }
   }
 
   public void savePrefs() {
@@ -104,7 +97,6 @@ public class PrefsWindow
       filePrefs.savePrefs();
     }
     folderSyncPrefs.savePrefs();
-    htmlPrefs.savePrefs();
   }
   
   public WebPrefs getWebPrefs() {
@@ -121,10 +113,6 @@ public class PrefsWindow
   
   public TagsPrefs getTagsPrefs() {
     return tagsPrefs;
-  }
-  
-  public HTMLPrefs getHTMLPrefs() {
-    return htmlPrefs;
   }
   
   public JTabbedPane getPrefsTabs() {
@@ -150,7 +138,7 @@ public class PrefsWindow
     });
 
     prefsTabs.setMaximumSize(new java.awt.Dimension(1200, 800));
-    prefsTabs.setMinimumSize(new java.awt.Dimension(800, 600));
+    prefsTabs.setMinimumSize(new java.awt.Dimension(600, 400));
     getContentPane().add(prefsTabs, java.awt.BorderLayout.CENTER);
 
     pack();

@@ -62,7 +62,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "1.80";
+  public static final String PROGRAM_VERSION = "2.00";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -122,7 +122,8 @@ public class NotenikMainFrame
       = new SimpleDateFormat ("yyyy-MM-dd-HH-mm");
 
   private             UserPrefs           userPrefs;
-  private             PrefsWindow         prefsWindow;
+  private             GeneralPrefs        generalPrefs;
+  private             CollectionPrefs     collectionPrefs;
   private             RecentFiles         recentFiles;
   private             FilePrefs           filePrefs;
   private             WebPrefs            webPrefs;
@@ -236,17 +237,18 @@ public class NotenikMainFrame
 
     // Initialize user preferences
     userPrefs = UserPrefs.getShared();
-    prefsWindow = new PrefsWindow (this);
-    folderSyncPrefs = prefsWindow.getFolderSyncPrefs();
+    generalPrefs = new GeneralPrefs (this);
+    collectionPrefs = new CollectionPrefs(this);
+    folderSyncPrefs = generalPrefs.getFolderSyncPrefs();
     
-    webPrefs = prefsWindow.getWebPrefs();
+    webPrefs = generalPrefs.getWebPrefs();
     
     filePrefs = new FilePrefs(this);
     filePrefs.loadFromPrefs();
-    prefsWindow.setFilePrefs(filePrefs);
+    generalPrefs.setFilePrefs(filePrefs);
     
     tweakerPrefs = new TweakerPrefs();
-    prefsWindow.getPrefsTabs().add(TweakerPrefs.PREFS_TAB_NAME, tweakerPrefs);
+    generalPrefs.getPrefsTabs().add(TweakerPrefs.PREFS_TAB_NAME, tweakerPrefs);
     
     exporter = new NoteExport(this);
     
@@ -312,7 +314,7 @@ public class NotenikMainFrame
     collectionWindow = new CollectionWindow();
     replaceWindow = new ReplaceWindow(this);
     
-    linkTweaker = new LinkTweaker(this, prefsWindow.getPrefsTabs());
+    linkTweaker = new LinkTweaker(this, generalPrefs.getPrefsTabs());
     
     fileInfoWindow = new FileInfoWindow(this);
 
@@ -357,7 +359,7 @@ public class NotenikMainFrame
           lastTitle = lastFileSpec.getLastTitle();
         }
         openFile (lastFolder, lastTitle);
-        if (prefsWindow.getFavoritesPrefs().isOpenStartup()) {
+        if (generalPrefs.getFavoritesPrefs().isOpenStartup()) {
           launchStartupURLs();
         }
       }
@@ -1212,7 +1214,7 @@ public int checkTags (String find, String replace) {
       if ((! newFileName.equals(fileName))
           && noteIO.exists(newFileName)) {
         trouble.report (this, 
-            "A Note already exists with the same What field",
+            "A Note already exists with the same Title",
             "Duplicate Found");
         modOK = false;
       } else {
@@ -1327,11 +1329,15 @@ public int checkTags (String find, String replace) {
      Standard way to respond to a Preferences Item Selection on a Mac.
    */
   public void handlePreferences() {
-    displayPrefs ();
+    displayGeneralPrefs ();
   }
 
-  public void displayPrefs () {
-    displayAuxiliaryWindow(prefsWindow);
+  public void displayGeneralPrefs () {
+    displayAuxiliaryWindow(generalPrefs);
+  }
+  
+  public void displayCollectionPrefs () {
+    displayAuxiliaryWindow(collectionPrefs);
   }
 
   public void setSplit (boolean splitPaneHorizontal) {
@@ -1354,7 +1360,8 @@ public int checkTags (String find, String replace) {
     savePreferredCollectionView();
     userPrefs.setPref (CommonPrefs.SPLIT_HORIZONTAL,
         mainSplitPane.getOrientation() == JSplitPane.HORIZONTAL_SPLIT);
-    prefsWindow.savePrefs();
+    generalPrefs.savePrefs();
+    collectionPrefs.savePrefs();
     if (tips != null) {
       tips.savePrefs();
     }
@@ -1753,7 +1760,7 @@ public int checkTags (String find, String replace) {
     treeCellRenderer = new TagTreeCellRenderer ();
     noteTree.setCellRenderer (treeCellRenderer);
     noteTree.doLayout();
-    prefsWindow.getTagsPrefs().setTagsValueList(noteList.getTagsList());
+    generalPrefs.getTagsPrefs().setTagsValueList(noteList.getTagsList());
     // setUnsavedChanges(false);
   }
   
@@ -2156,7 +2163,8 @@ public int checkTags (String find, String replace) {
       statusBar.setFileName(fileName);
       publishWindow.openSource(currentDirectory);
     }
-    prefsWindow.setCollection(currentFileSpec);
+    generalPrefs.setCollection(currentFileSpec);
+    collectionPrefs.setCollection(currentFileSpec);
   }
 
   public void displayPublishWindow() {
@@ -2209,7 +2217,7 @@ public int checkTags (String find, String replace) {
     
     // File favoritesTab = new File (publishTo, "favorites.tab");
     // io.exportToTabDelimited(noteList, favoritesTab, true,
-    //    prefsWindow.getFavoritesPrefs().getFavoritesTags());
+    //    generalPrefs.getFavoritesPrefs().getFavoritesTags());
 
     urlUnionWritten = false;
     favoritesWritten = false;
@@ -2273,7 +2281,7 @@ public int checkTags (String find, String replace) {
     favoritesWritten = false;
     if (! noteFile.getName().equalsIgnoreCase (FAVORITES_FILE_NAME)) {
       favoritesWritten = exporter.publishFavorites
-          (publishTo, noteList, prefsWindow.getFavoritesPrefs());
+          (publishTo, noteList, generalPrefs.getFavoritesPrefs());
     }
     return favoritesWritten;
   }
@@ -2671,9 +2679,9 @@ public int checkTags (String find, String replace) {
       int exported = 0;
       
       String selectTagsStr 
-        = prefsWindow.getTagsPrefs().getSelectTagsAsString();
+        = generalPrefs.getTagsPrefs().getSelectTagsAsString();
       String suppressTagsStr 
-        = prefsWindow.getTagsPrefs().getSuppressTagsAsString();
+        = generalPrefs.getTagsPrefs().getSuppressTagsAsString();
       
       File selectedFile;
       fileChooser.setDialogTitle ("Export to " 
@@ -2987,10 +2995,8 @@ public int checkTags (String find, String replace) {
     jSeparator6 = new javax.swing.JPopupMenu.Separator();
     purgeMenuItem = new javax.swing.JMenuItem();
     jSeparator7 = new javax.swing.JPopupMenu.Separator();
-    editMenu = new javax.swing.JMenu();
-    deleteMenuItem = new javax.swing.JMenuItem();
-    escapeMenuItem = new javax.swing.JMenuItem();
     collectionMenu = new javax.swing.JMenu();
+    collectionPrefsMenuItem = new javax.swing.JMenuItem();
     propertiesMenuItem = new javax.swing.JMenuItem();
     jSeparator2 = new javax.swing.JPopupMenu.Separator();
     findMenuItem = new javax.swing.JMenuItem();
@@ -3014,6 +3020,9 @@ public int checkTags (String find, String replace) {
     htmlMenu = new javax.swing.JMenu();
     htmlToClipboardMenuItem = new javax.swing.JMenuItem();
     htmlToFile = new javax.swing.JMenuItem();
+    editMenu = new javax.swing.JMenu();
+    deleteMenuItem = new javax.swing.JMenuItem();
+    escapeMenuItem = new javax.swing.JMenuItem();
     toolsMenu = new javax.swing.JMenu();
     toolsOptionsMenuItem = new javax.swing.JMenuItem();
     toolsLinkTweakerMenuItem = new javax.swing.JMenuItem();
@@ -3404,29 +3413,15 @@ public int checkTags (String find, String replace) {
 
     mainMenuBar.add(fileMenu);
 
-    editMenu.setText("Edit");
-
-    deleteMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_BACK_SPACE, 0));
-    deleteMenuItem.setText("Delete");
-    deleteMenuItem.addActionListener(new java.awt.event.ActionListener() {
-      public void actionPerformed(java.awt.event.ActionEvent evt) {
-        deleteMenuItemActionPerformed(evt);
-      }
-    });
-    editMenu.add(deleteMenuItem);
-
-    escapeMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0));
-    escapeMenuItem.setText("Escape Edit");
-    escapeMenuItem.addActionListener(new java.awt.event.ActionListener() {
-      public void actionPerformed(java.awt.event.ActionEvent evt) {
-        escapeMenuItemActionPerformed(evt);
-      }
-    });
-    editMenu.add(escapeMenuItem);
-
-    mainMenuBar.add(editMenu);
-
     collectionMenu.setText("Collection");
+
+    collectionPrefsMenuItem.setText("Collection Preferences");
+    collectionPrefsMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        collectionPrefsMenuItemActionPerformed(evt);
+      }
+    });
+    collectionMenu.add(collectionPrefsMenuItem);
 
     propertiesMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_I, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
     propertiesMenuItem.setText("Get Info");
@@ -3599,6 +3594,28 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
   noteMenu.add(htmlMenu);
 
   mainMenuBar.add(noteMenu);
+
+  editMenu.setText("Edit");
+
+  deleteMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_BACK_SPACE, 0));
+  deleteMenuItem.setText("Delete");
+  deleteMenuItem.addActionListener(new java.awt.event.ActionListener() {
+    public void actionPerformed(java.awt.event.ActionEvent evt) {
+      deleteMenuItemActionPerformed(evt);
+    }
+  });
+  editMenu.add(deleteMenuItem);
+
+  escapeMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0));
+  escapeMenuItem.setText("Escape Edit");
+  escapeMenuItem.addActionListener(new java.awt.event.ActionListener() {
+    public void actionPerformed(java.awt.event.ActionEvent evt) {
+      escapeMenuItemActionPerformed(evt);
+    }
+  });
+  editMenu.add(escapeMenuItem);
+
+  mainMenuBar.add(editMenu);
 
   toolsMenu.setText("Tools");
 
@@ -3864,12 +3881,17 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     genHTMLtoFile();
   }//GEN-LAST:event_htmlToFileActionPerformed
 
+  private void collectionPrefsMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_collectionPrefsMenuItemActionPerformed
+    displayAuxiliaryWindow(collectionPrefs);
+  }//GEN-LAST:event_collectionPrefsMenuItemActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
   private javax.swing.JMenuItem addReplaceMenuItem;
   private javax.swing.JMenuItem closeNoteMenuItem;
   private javax.swing.JMenu collectionMenu;
+  private javax.swing.JMenuItem collectionPrefsMenuItem;
   private javax.swing.JTabbedPane collectionTabbedPane;
   private javax.swing.JMenuItem copyNoteMenuItem;
   private javax.swing.JMenuItem deleteMenuItem;
