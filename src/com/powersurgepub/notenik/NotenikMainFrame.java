@@ -101,9 +101,6 @@ public class NotenikMainFrame
 
   // Publish Window
   private             PublishWindow       publishWindow;
-
-  // Properties Window
-  private             CollectionWindow    collectionWindow;
   
   // Replace Window
   private             ReplaceWindow       replaceWindow;
@@ -311,7 +308,6 @@ public class NotenikMainFrame
     publishWindow.setOnSaveOption(false);
     publishWindow.setStatusBar(statusBar);
 
-    collectionWindow = new CollectionWindow();
     replaceWindow = new ReplaceWindow(this);
     
     linkTweaker = new LinkTweaker(this, generalPrefs.getPrefsTabs());
@@ -1504,7 +1500,6 @@ public int checkTags (String find, String replace) {
     }
     addFirstNoteIfListEmpty();
     buildNoteTabs();
-    collectionWindow.newNoteFolder(noteList, noteIO);
     noteList.fireTableDataChanged();
     position = new NotePositioned (noteIO.getRecDef());
     setPreferredCollectionView();
@@ -1941,7 +1936,6 @@ public int checkTags (String find, String replace) {
       } catch (IOException e) {
         ioException(e);
       }
-      // collectionWindow.setList (noteList);
       // setUnsavedChanges(true);
     }
     noteList.fireTableDataChanged();
@@ -1976,7 +1970,6 @@ public int checkTags (String find, String replace) {
     if (this.noteFile != null) {
       modIfChanged();
       // checkForUnsavedChanges();
-      collectionWindow.close(noteIO);
       publishWindow.closeSource();
       filePrefs.handleClose();
     }
@@ -2073,8 +2066,6 @@ public int checkTags (String find, String replace) {
     if(selectedFile != null) {
       File chosenFile = selectedFile;
       saveFileAs(chosenFile);
-      // collectionWindow.setList (noteList);
-      // collectionWindow.newNoteFolder(noteList, null);
       noteList.fireTableDataChanged();
       // setNoteFile (null);
       // setPreferredCollectionView();
@@ -2124,7 +2115,6 @@ public int checkTags (String find, String replace) {
     } catch (IOException e) {
       ioException(e);
     }
-    collectionWindow.newNoteFolder(noteList, noteIO);
     publishWindow.saveSource();
   }
 
@@ -2997,7 +2987,6 @@ public int checkTags (String find, String replace) {
     jSeparator7 = new javax.swing.JPopupMenu.Separator();
     collectionMenu = new javax.swing.JMenu();
     collectionPrefsMenuItem = new javax.swing.JMenuItem();
-    propertiesMenuItem = new javax.swing.JMenuItem();
     jSeparator2 = new javax.swing.JPopupMenu.Separator();
     findMenuItem = new javax.swing.JMenuItem();
     replaceMenuItem = new javax.swing.JMenuItem();
@@ -3422,15 +3411,6 @@ public int checkTags (String find, String replace) {
       }
     });
     collectionMenu.add(collectionPrefsMenuItem);
-
-    propertiesMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_I, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
-    propertiesMenuItem.setText("Get Info");
-    propertiesMenuItem.addActionListener(new java.awt.event.ActionListener() {
-      public void actionPerformed(java.awt.event.ActionEvent evt) {
-        propertiesMenuItemActionPerformed(evt);
-      }
-    });
-    collectionMenu.add(propertiesMenuItem);
     collectionMenu.add(jSeparator2);
 
     findMenuItem.setText("Find");
@@ -3760,11 +3740,6 @@ private void validateURLsMenuItemActionPerformed(java.awt.event.ActionEvent evt)
   validateURLs();
 }//GEN-LAST:event_validateURLsMenuItemActionPerformed
 
-private void propertiesMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_propertiesMenuItemActionPerformed
-  // setUnsavedChanges (true);
-  displayAuxiliaryWindow(collectionWindow);
-}//GEN-LAST:event_propertiesMenuItemActionPerformed
-
 private void reloadMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_reloadMenuItemActionPerformed
   reloadFile();
 }//GEN-LAST:event_reloadMenuItemActionPerformed
@@ -3946,7 +3921,6 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenu openRecentMenu;
   private javax.swing.JMenuItem pasteNoteMenuItem;
   private javax.swing.JMenuItem priorMenuItem;
-  private javax.swing.JMenuItem propertiesMenuItem;
   private javax.swing.JMenuItem publishNowMenuItem;
   private javax.swing.JMenuItem publishWindowMenuItem;
   private javax.swing.JMenuItem purgeMenuItem;
