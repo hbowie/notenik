@@ -17,7 +17,6 @@
 package com.powersurgepub.notenik;
 
   import com.powersurgepub.psdatalib.pstags.*;
-  import com.powersurgepub.psdatalib.ui.*;
   import com.powersurgepub.psfiles.*;
   import com.powersurgepub.psutils.*;
   import com.powersurgepub.xos2.*;
@@ -42,7 +41,6 @@ public class CollectionPrefs
   
   private WebPrefs          webPrefs;
   private FolderSyncPrefs   folderSyncPrefs;
-  private TagsPrefs         tagsPrefs;
   private HTMLPrefs         htmlPrefs;
   
   /** Creates new form PrefsWindow */
@@ -59,9 +57,6 @@ public class CollectionPrefs
     
     folderSyncPrefs = new FolderSyncPrefs (mainFrame);
     prefsTabs.addTab("Folder Sync", folderSyncPrefs);
-    
-    tagsPrefs = new TagsPrefs();
-    prefsTabs.addTab ("Tags Export", tagsPrefs);
     
     htmlPrefs = new HTMLPrefs(mainFrame);
     prefsTabs.addTab ("HTML Gen", htmlPrefs);
@@ -98,10 +93,6 @@ public class CollectionPrefs
     return folderSyncPrefs;
   }
   
-  public TagsPrefs getTagsPrefs() {
-    return tagsPrefs;
-  }
-  
   public HTMLPrefs getHTMLPrefs() {
     return htmlPrefs;
   }
@@ -117,6 +108,7 @@ public class CollectionPrefs
    */
   // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
   private void initComponents() {
+    java.awt.GridBagConstraints gridBagConstraints;
 
     collectionNameLabel = new javax.swing.JLabel();
     prefsTabs = new javax.swing.JTabbedPane();
@@ -129,16 +121,29 @@ public class CollectionPrefs
         formComponentHidden(evt);
       }
     });
+    getContentPane().setLayout(new java.awt.GridBagLayout());
 
     collectionNameLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
     collectionNameLabel.setText("Collection: ");
     collectionNameLabel.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
     collectionNameLabel.setMaximumSize(new java.awt.Dimension(800, 16));
-    getContentPane().add(collectionNameLabel, java.awt.BorderLayout.PAGE_START);
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 0;
+    gridBagConstraints.gridy = 0;
+    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+    gridBagConstraints.weightx = 1.0;
+    gridBagConstraints.insets = new java.awt.Insets(8, 8, 8, 8);
+    getContentPane().add(collectionNameLabel, gridBagConstraints);
 
     prefsTabs.setMaximumSize(new java.awt.Dimension(1200, 800));
     prefsTabs.setMinimumSize(new java.awt.Dimension(800, 600));
-    getContentPane().add(prefsTabs, java.awt.BorderLayout.CENTER);
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 0;
+    gridBagConstraints.gridy = 1;
+    gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+    gridBagConstraints.weightx = 1.0;
+    gridBagConstraints.weighty = 1.0;
+    getContentPane().add(prefsTabs, gridBagConstraints);
 
     pack();
   }// </editor-fold>//GEN-END:initComponents

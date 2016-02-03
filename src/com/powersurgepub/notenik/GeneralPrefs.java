@@ -43,7 +43,6 @@ public class GeneralPrefs
   private WebPrefs          webPrefs;
   private FavoritesPrefs    favoritesPrefs;
   private FilePrefs         filePrefs = null;
-  private FolderSyncPrefs   folderSyncPrefs;
   private TagsPrefs         tagsPrefs;
   
   /** Creates new form PrefsWindow */
@@ -64,9 +63,6 @@ public class GeneralPrefs
     favoritesPrefs = new FavoritesPrefs (mainFrame);
     prefsTabs.addTab("Favorites", favoritesPrefs);
     
-    folderSyncPrefs = new FolderSyncPrefs (mainFrame);
-    prefsTabs.addTab("Folder Sync", folderSyncPrefs);
-    
     tagsPrefs = new TagsPrefs();
     prefsTabs.addTab ("Tags Export", tagsPrefs);
     
@@ -77,17 +73,6 @@ public class GeneralPrefs
     this.filePrefs = filePrefs;
     prefsTabs.addTab("Files", filePrefs);
   }
-  
-  /**
-   Keep track of the current file spec. 
-  
-   @param currentSpec 
-  */
-  public void setCollection (FileSpec currentSpec) {
-    if (folderSyncPrefs != null) {
-      folderSyncPrefs.setCollection(currentSpec);
-    }
-  }
 
   public void savePrefs() {
     commonPrefs.savePrefs();
@@ -96,7 +81,6 @@ public class GeneralPrefs
     if (filePrefs != null) {
       filePrefs.savePrefs();
     }
-    folderSyncPrefs.savePrefs();
   }
   
   public WebPrefs getWebPrefs() {
@@ -105,10 +89,6 @@ public class GeneralPrefs
 
   public FavoritesPrefs getFavoritesPrefs() {
     return favoritesPrefs;
-  }
-  
-  public FolderSyncPrefs getFolderSyncPrefs() {
-    return folderSyncPrefs;
   }
   
   public TagsPrefs getTagsPrefs() {

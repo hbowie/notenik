@@ -236,7 +236,7 @@ public class NotenikMainFrame
     userPrefs = UserPrefs.getShared();
     generalPrefs = new GeneralPrefs (this);
     collectionPrefs = new CollectionPrefs(this);
-    folderSyncPrefs = generalPrefs.getFolderSyncPrefs();
+    folderSyncPrefs = collectionPrefs.getFolderSyncPrefs();
     
     webPrefs = generalPrefs.getWebPrefs();
     
@@ -2153,7 +2153,7 @@ public int checkTags (String find, String replace) {
       statusBar.setFileName(fileName);
       publishWindow.openSource(currentDirectory);
     }
-    generalPrefs.setCollection(currentFileSpec);
+
     collectionPrefs.setCollection(currentFileSpec);
   }
 

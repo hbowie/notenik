@@ -50,7 +50,6 @@ public class HTMLPrefs
     htmlFolderTextField.setText("");
     if (collection != null) {
       htmlFolderTextField.setText(collection.getHTMLFolder());
-      collectionTextField.setText(collection.getPath());
     } // end if collection not null
   }
   
@@ -96,8 +95,6 @@ public class HTMLPrefs
     folderLabel = new javax.swing.JLabel();
     folderBrowseButton = new javax.swing.JButton();
     htmlFolderTextField = new javax.swing.JTextField();
-    collectionLabel = new javax.swing.JLabel();
-    collectionTextField = new javax.swing.JLabel();
     saveButton = new javax.swing.JButton();
 
     setLayout(new java.awt.GridBagLayout());
@@ -138,22 +135,6 @@ public class HTMLPrefs
     gridBagConstraints.insets = new java.awt.Insets(4, 4, 4, 4);
     add(htmlFolderTextField, gridBagConstraints);
 
-    collectionLabel.setText("Collection:");
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 3;
-    gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-    gridBagConstraints.insets = new java.awt.Insets(12, 8, 4, 4);
-    add(collectionLabel, gridBagConstraints);
-
-    collectionTextField.setText(" ");
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 4;
-    gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-    gridBagConstraints.insets = new java.awt.Insets(4, 8, 4, 4);
-    add(collectionTextField, gridBagConstraints);
-
     saveButton.setText("Save");
     saveButton.setMinimumSize(new java.awt.Dimension(100, 29));
     saveButton.addActionListener(new java.awt.event.ActionListener() {
@@ -189,8 +170,6 @@ public class HTMLPrefs
   }//GEN-LAST:event_saveButtonActionPerformed
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
-  private javax.swing.JLabel collectionLabel;
-  private javax.swing.JLabel collectionTextField;
   private javax.swing.JButton folderBrowseButton;
   private javax.swing.JLabel folderLabel;
   private javax.swing.JTextField htmlFolderTextField;
