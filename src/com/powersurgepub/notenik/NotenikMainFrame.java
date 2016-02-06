@@ -2085,20 +2085,30 @@ public int checkTags (String find, String replace) {
       fileChooser.setCurrentDirectory (currentDirectory);
       fileChooser.setSelectedFile (currentDirectory);
     }
+    if (FileUtils.isGoodInputDirectory(noteFile)) {
+      fileChooser.setSelectedFile(noteFile);
+    }
     File selectedFile = fileChooser.showSaveDialog (this);
     if(selectedFile != null) {
-      NoteParms noteParms = new NoteParms(NoteParms.NOTES_EXPANDED_TYPE);
-      RecordDefinition recDef = noteParms.getRecDef();
+      NoteParms templateParms = new NoteParms(NoteParms.NOTES_EXPANDED_TYPE);
+      RecordDefinition recDef = templateParms.getRecDef();
       Note templateNote = new Note(recDef);
       templateNote.setTitle("The unique title for this note");
       templateNote.setTags("One or more tags, separated by commas");
       templateNote.setLink("http://anyurl.com");
       templateNote.setStatus("One of a number of states");
+      templateNote.setType("The type of note");
+      StringDate today = new StringDate();
+      today.set(StringDate.getTodayYMD());
+      templateNote.setDate(today);
+      templateNote.setAuthor("The Author of the Note");
+      templateNote.setRating("5");
+      templateNote.setTeaser
+        ("A brief sample of the note that will make people want to read more");
       templateNote.setBody("The body of the note");
       File templateFile = new File(selectedFile, "template.txt");
       NoteIO templateIO = new NoteIO(selectedFile);
       templateIO.save(templateNote, templateFile, true); 
-      // addFirstNote();
     }
   }
   
