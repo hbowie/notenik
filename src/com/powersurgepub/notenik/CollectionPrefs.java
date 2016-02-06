@@ -39,7 +39,6 @@ public class CollectionPrefs
   
   private boolean           setupComplete = false;
   
-  private WebPrefs          webPrefs;
   private FolderSyncPrefs   folderSyncPrefs;
   private HTMLPrefs         htmlPrefs;
   
@@ -51,9 +50,6 @@ public class CollectionPrefs
     
     this.setTitle (Home.getShared().getProgramName() + " Collection Preferences");
     this.setBounds (100, 100, 600, 400);
-    
-    webPrefs = new WebPrefs (mainFrame);
-    prefsTabs.addTab("Web", webPrefs);
     
     folderSyncPrefs = new FolderSyncPrefs (mainFrame);
     prefsTabs.addTab("Folder Sync", folderSyncPrefs);
@@ -80,13 +76,8 @@ public class CollectionPrefs
   }
 
   public void savePrefs() {
-    webPrefs.savePrefs();
     folderSyncPrefs.savePrefs();
     htmlPrefs.savePrefs();
-  }
-  
-  public WebPrefs getWebPrefs() {
-    return webPrefs;
   }
   
   public FolderSyncPrefs getFolderSyncPrefs() {
