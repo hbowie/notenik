@@ -375,6 +375,11 @@ public class NotenikMainFrame
       }
       // displayNote();
     }
+    
+    JTextField textField = new JTextField();
+    EditMenuItemMaker editMenuItemMaker 
+        = new EditMenuItemMaker (textField);
+    editMenuItemMaker.addCutCopyPaste (editMenu);
 
     CommonPrefs.getShared().appLaunch();
 
@@ -2394,15 +2399,26 @@ public int checkTags (String find, String replace) {
   public boolean backup(File folderForBackups) {
     
     StringBuilder backupPath = new StringBuilder();
+    StringBuilder fileNameWithoutDate = new StringBuilder();
     try {
       backupPath.append(folderForBackups.getCanonicalPath());
     } catch (IOException e) {
       backupPath.append(folderForBackups.getAbsolutePath());
     }
     backupPath.append(File.separator);
+    String noteFileName = noteFile.getName();
+    if (noteFileName.equalsIgnoreCase("notes")) {
+      backupPath.append(noteFile.getParentFile().getName());
+      backupPath.append(" ");
+      fileNameWithoutDate.append(noteFile.getParentFile().getName());
+      fileNameWithoutDate.append(" ");
+    }
     backupPath.append(noteFile.getName());
+    fileNameWithoutDate.append(noteFile.getName());
     backupPath.append(" ");
+    fileNameWithoutDate.append(" ");
     backupPath.append("backup ");
+    fileNameWithoutDate.append("backup ");
     backupPath.append(filePrefs.getBackupDate());
     File backupFolder = new File (backupPath.toString());
     backupFolder.mkdir();
@@ -2414,6 +2430,7 @@ public int checkTags (String find, String replace) {
       logger.recordEvent (LogEvent.NORMAL,
           "Notes backed up to " + backupFolder.toString(),
             false);
+      filePrefs.pruneBackups(folderForBackups, fileNameWithoutDate.toString());
     } else {
       logger.recordEvent (LogEvent.MEDIUM,
           "Problem backing up Notes to " + backupFolder.toString(),
