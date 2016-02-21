@@ -1964,6 +1964,21 @@ public int checkTags (String find, String replace) {
     firstNote();
   }
   
+  private void importTabDelimited() {
+    fileChooser.setDialogTitle("Import Notes from a Tab-Delimited File");
+    fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+    if (FileUtils.isGoodInputDirectory(currentDirectory)) {
+      fileChooser.setCurrentDirectory(currentDirectory);
+    }
+    File selectedFile = fileChooser.showOpenDialog(this);
+    if (selectedFile != null) {
+      NoteImportTabDelim importer = new NoteImportTabDelim(this);
+      importer.parse(selectedFile, noteList);
+    }
+    noteList.fireTableDataChanged();
+    firstNote();
+  }
+  
   private void ioException(IOException e) {
     Trouble.getShared().report("I/O Exception", "Trouble");
   }
@@ -2103,6 +2118,7 @@ public int checkTags (String find, String replace) {
       templateNote.setLink("http://anyurl.com");
       templateNote.setStatus("One of a number of states");
       templateNote.setType("The type of note");
+      templateNote.setSeq("Rev Letter or Version Number");
       StringDate today = new StringDate();
       today.set(StringDate.getTodayYMD());
       templateNote.setDate(today);
@@ -3002,6 +3018,7 @@ public int checkTags (String find, String replace) {
     jSeparator5 = new javax.swing.JSeparator();
     importMenu = new javax.swing.JMenu();
     importNotenikMenuItem = new javax.swing.JMenuItem();
+    importTabDelimitedMenuItem = new javax.swing.JMenuItem();
     importXMLMenuItem = new javax.swing.JMenuItem();
     exportMenu = new javax.swing.JMenu();
     exportNotenikMenuItem = new javax.swing.JMenuItem();
@@ -3026,11 +3043,14 @@ public int checkTags (String find, String replace) {
     noteMenu = new javax.swing.JMenu();
     newNoteMenuItem = new javax.swing.JMenuItem();
     deleteNoteMenuItem = new javax.swing.JMenuItem();
+    jSeparator8 = new javax.swing.JPopupMenu.Separator();
     nextMenuItem = new javax.swing.JMenuItem();
     priorMenuItem = new javax.swing.JMenuItem();
+    jSeparator9 = new javax.swing.JPopupMenu.Separator();
     openNoteMenuItem = new javax.swing.JMenuItem();
     getFileInfoMenuItem = new javax.swing.JMenuItem();
     closeNoteMenuItem = new javax.swing.JMenuItem();
+    jSeparator11 = new javax.swing.JPopupMenu.Separator();
     copyNoteMenuItem = new javax.swing.JMenuItem();
     pasteNoteMenuItem = new javax.swing.JMenuItem();
     htmlMenu = new javax.swing.JMenu();
@@ -3355,7 +3375,7 @@ public int checkTags (String find, String replace) {
 
     importMenu.setText("Import");
 
-    importNotenikMenuItem.setText("Import from Notenik...");
+    importNotenikMenuItem.setText("Notenik");
     importNotenikMenuItem.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
         importNotenikMenuItemActionPerformed(evt);
@@ -3363,7 +3383,15 @@ public int checkTags (String find, String replace) {
     });
     importMenu.add(importNotenikMenuItem);
 
-    importXMLMenuItem.setText("Import from XML...");
+    importTabDelimitedMenuItem.setText("Tab-Delimited");
+    importTabDelimitedMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        importTabDelimitedMenuItemActionPerformed(evt);
+      }
+    });
+    importMenu.add(importTabDelimitedMenuItem);
+
+    importXMLMenuItem.setText("XML");
     importXMLMenuItem.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
         importXMLMenuItemActionPerformed(evt);
@@ -3375,7 +3403,7 @@ public int checkTags (String find, String replace) {
 
     exportMenu.setText("Export");
 
-    exportNotenikMenuItem.setText("Notenik...");
+    exportNotenikMenuItem.setText("Notenik");
     exportNotenikMenuItem.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
         exportNotenikMenuItemActionPerformed(evt);
@@ -3383,7 +3411,7 @@ public int checkTags (String find, String replace) {
     });
     exportMenu.add(exportNotenikMenuItem);
 
-    exportOPML.setText("OPML...");
+    exportOPML.setText("OPML");
     exportOPML.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
         exportOPMLActionPerformed(evt);
@@ -3391,7 +3419,7 @@ public int checkTags (String find, String replace) {
     });
     exportMenu.add(exportOPML);
 
-    exportTabDelimitedMenuItem.setText("Tab-Delimited...");
+    exportTabDelimitedMenuItem.setText("Tab-Delimited");
     exportTabDelimitedMenuItem.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
         exportTabDelimitedMenuItemActionPerformed(evt);
@@ -3407,7 +3435,7 @@ public int checkTags (String find, String replace) {
     });
     exportMenu.add(exportTabDelimitedMSMenuItem);
 
-    exportXMLMenuItem.setText("XML...");
+    exportXMLMenuItem.setText("XML");
     exportXMLMenuItem.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
         exportXMLMenuItemActionPerformed(evt);
@@ -3517,6 +3545,7 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
     }
   });
   noteMenu.add(deleteNoteMenuItem);
+  noteMenu.add(jSeparator8);
 
   nextMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_CLOSE_BRACKET, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
   nextMenuItem.setText("Go to Next Note");
@@ -3535,6 +3564,7 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
     }
   });
   noteMenu.add(priorMenuItem);
+  noteMenu.add(jSeparator9);
 
   openNoteMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_T, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
   openNoteMenuItem.setText("Text Edit Note");
@@ -3563,6 +3593,7 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
     }
   });
   noteMenu.add(closeNoteMenuItem);
+  noteMenu.add(jSeparator11);
 
   copyNoteMenuItem.setText("Copy Note");
   copyNoteMenuItem.addActionListener(new java.awt.event.ActionListener() {
@@ -3887,6 +3918,10 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     displayAuxiliaryWindow(collectionPrefs);
   }//GEN-LAST:event_collectionPrefsMenuItemActionPerformed
 
+  private void importTabDelimitedMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_importTabDelimitedMenuItemActionPerformed
+    importTabDelimited();
+  }//GEN-LAST:event_importTabDelimitedMenuItemActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -3923,15 +3958,19 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem htmlToFile;
   private javax.swing.JMenu importMenu;
   private javax.swing.JMenuItem importNotenikMenuItem;
+  private javax.swing.JMenuItem importTabDelimitedMenuItem;
   private javax.swing.JMenuItem importXMLMenuItem;
   private javax.swing.JSeparator jSeparator1;
   private javax.swing.JPopupMenu.Separator jSeparator10;
+  private javax.swing.JPopupMenu.Separator jSeparator11;
   private javax.swing.JPopupMenu.Separator jSeparator2;
   private javax.swing.JSeparator jSeparator3;
   private javax.swing.JSeparator jSeparator4;
   private javax.swing.JSeparator jSeparator5;
   private javax.swing.JPopupMenu.Separator jSeparator6;
   private javax.swing.JPopupMenu.Separator jSeparator7;
+  private javax.swing.JPopupMenu.Separator jSeparator8;
+  private javax.swing.JPopupMenu.Separator jSeparator9;
   private javax.swing.JButton launchButton;
   private javax.swing.JPanel listPanel;
   private javax.swing.JMenuItem lowerCaseTagsMenuItem;

@@ -55,11 +55,11 @@ Version: 2.00
         <li>
           <a href="#export-to-xml">Export to XML</a>
         </li>
-        <li>
-          <a href="#publish-your-notes">Publish Your Notes</a>
-        </li>
       </ul>
 
+    </li>
+    <li>
+      <a href="#publish-your-notes">Publish Your Notes</a>
     </li>
     <li>
       <a href="#publish-a-favorites-page">Publish a Favorites Page</a>
@@ -265,7 +265,7 @@ Your Notes will be exported to an XML format with each field represented as a se
 
 Note that, for XML formats, the resulting file may contain invalid characters if those are present in your Notes.
 
-<h3 id="publish-your-notes">Publish Your Notes</h3>
+<h2 id="publish-your-notes">Publish Your Notes</h2>
 
 
 The publish option allows you to easily publish your Notes in a variety of useful formats. For example, you can easily publish your notes as a series of web pages.
