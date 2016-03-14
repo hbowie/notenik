@@ -1,4 +1,11 @@
 
+## Version 1.80 (2015-11-16)
+
+1. **Added Note Copy/Paste Functionality**
+
+    Added Copy and Paste functions to the Note menu, allowing a note to be copied from one collection to another, by way of the System Clipboard.
+
+
 ## Version 1.70 (2015-08-31)
 
 1. **Added Status Field with Purge Capability**
