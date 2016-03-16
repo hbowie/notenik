@@ -1,4 +1,11 @@
 
+## Version 2.00 (2016-03-16)
+
+1. **Improved Documentation and Bug Fixes**
+
+    Improved the documentation and made sure everything works per the user guide.
+
+
 ## Version 1.80 (2015-11-16)
 
 1. **Added Note Copy/Paste Functionality**
