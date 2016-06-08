@@ -124,6 +124,7 @@ public class NotenikMainFrame
   private             RecentFiles         recentFiles;
   private             FilePrefs           filePrefs;
   private             WebPrefs            webPrefs;
+  private             Reports             reports;
   
   /** File of Notes that is currently open. */
   private             NoteIO              noteIO = null;
@@ -218,6 +219,7 @@ public class NotenikMainFrame
     home = Home.getShared ();
     programVersion = ProgramVersion.getShared ();
     initComponents();
+    reports = new Reports(reportsMenu);
     
     getContentPane().add(statusBar, java.awt.BorderLayout.SOUTH);
     WindowMenuManager.getShared(windowMenu);
@@ -2183,6 +2185,7 @@ public int checkTags (String find, String replace) {
       FileName fileName = new FileName (file);
       statusBar.setFileName(fileName);
       publishWindow.openSource(currentDirectory);
+      reports.setDataFolder(file);
     }
 
     collectionPrefs.setCollection(currentFileSpec);
@@ -3062,6 +3065,7 @@ public int checkTags (String find, String replace) {
     toolsMenu = new javax.swing.JMenu();
     toolsOptionsMenuItem = new javax.swing.JMenuItem();
     toolsLinkTweakerMenuItem = new javax.swing.JMenuItem();
+    reportsMenu = new javax.swing.JMenu();
     windowMenu = new javax.swing.JMenu();
     helpMenu = new javax.swing.JMenu();
 
@@ -3676,6 +3680,9 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
 
   mainMenuBar.add(toolsMenu);
 
+  reportsMenu.setText("Reports");
+  mainMenuBar.add(reportsMenu);
+
   windowMenu.setText("Window");
   mainMenuBar.add(windowMenu);
 
@@ -3992,6 +3999,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem purgeMenuItem;
   private javax.swing.JMenuItem reloadMenuItem;
   private javax.swing.JMenuItem replaceMenuItem;
+  private javax.swing.JMenu reportsMenu;
   private javax.swing.JMenuItem saveAllMenuItem;
   private javax.swing.JScrollPane tableScrollPane;
   private javax.swing.JMenuItem toolsLinkTweakerMenuItem;
