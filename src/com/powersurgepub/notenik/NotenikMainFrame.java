@@ -26,6 +26,7 @@ package com.powersurgepub.notenik;
   import com.powersurgepub.psdatalib.psdata.values.*;
   import com.powersurgepub.psdatalib.pslist.*;
   import com.powersurgepub.psdatalib.tabdelim.*;
+  import com.powersurgepub.psdatalib.textmerge.*;
   import com.powersurgepub.psdatalib.txbio.*;
   import com.powersurgepub.pspub.*;
   import com.powersurgepub.pstextio.*;
@@ -62,7 +63,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "2.00";
+  public static final String PROGRAM_VERSION = "2.10";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -208,6 +209,8 @@ public class NotenikMainFrame
   boolean             clipBoardOwned = false;
   Clipboard           clipBoard = null;
   Transferable        clipContents = null;
+  
+  private             TextMergeHarness    textMerge = null;
 
   /** Creates new form NotenikMainFrame */
   public NotenikMainFrame() {
@@ -219,6 +222,8 @@ public class NotenikMainFrame
     home = Home.getShared ();
     programVersion = ProgramVersion.getShared ();
     initComponents();
+    
+    // textMerge = TextMergeHarness.getShared(noteList);
     reports = new Reports(reportsMenu);
     
     getContentPane().add(statusBar, java.awt.BorderLayout.SOUTH);
