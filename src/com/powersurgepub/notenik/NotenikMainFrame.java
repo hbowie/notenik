@@ -1460,45 +1460,13 @@ public int checkTags (String find, String replace) {
     closeFile();
     
     logNormal("Opening folder " + fileToOpen.toString());
-    // Process template file if one exists
-    File templateFile = new File(fileToOpen, NoteParms.TEMPLATE_FILE_NAME);
-    if (FileUtils.isGoodInputFile(templateFile)) {
-      logNormal("Template file " + templateFile.toString() + " found with following fields:");
-    } else {
-      logNormal("Template file " + templateFile.toString() + " not found");
-    }
-    boolean templateFound = false;
-    NoteIO templateIO = null;
-    if (FileUtils.isGoodInputFile(templateFile)) {
-      // Let the template fields define the record definition
-      templateIO = new NoteIO(fileToOpen, NoteParms.NOTES_GENERAL_TYPE);
-      templateIO.buildRecordDefinition(); 
-      try {
-        Note templateNote = templateIO.getNote(templateFile, "");
-        if (templateNote != null
-            && templateIO.getRecDef().getNumberOfFields() > 0) {
-          templateFound = true;
-        }
-      } catch (IOException e) {
-        System.out.println("I/O Error while attempting to read template file");
-      }
-    }
+    noteIO = new NoteIO(fileToOpen, NoteParms.NOTES_ONLY_TYPE);
     
-    if (templateFound) {
-      RecordDefinition recDef = templateIO.getRecDef();
-      for (int i = 0; i < recDef.getNumberOfFields(); i++) {
-        DataFieldDefinition fieldDef = recDef.getDef(i);
-        logNormal("  " + String.valueOf(i + 1) + ". " + fieldDef.getProperName());
-      }
-      noteIO = new NoteIO(
-          fileToOpen, 
-          NoteParms.DEFINED_TYPE, 
-          templateIO.getRecDef());
-    } else {
-      noteIO = new NoteIO(
-          fileToOpen,
-          NoteParms.NOTES_ONLY_TYPE);
-    }
+    NoteParms templateParms = noteIO.checkForTemplate();
+    if (templateParms != null) {
+      noteIO = new NoteIO (fileToOpen, templateParms);
+    }    
+    
     initCollection();
     
     setNoteFile (fileToOpen);
@@ -1709,7 +1677,6 @@ public int checkTags (String find, String replace) {
           statusIncluded = true;
           break;
       }
-      
       widgets.add(widgetWithLabel.getWidget());
 
     } // end for each data field
