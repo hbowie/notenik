@@ -63,7 +63,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "2.10";
+  public static final String PROGRAM_VERSION = "2.20";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -1130,6 +1130,24 @@ public int checkTags (String find, String replace) {
     if (currentFileSpec != null) {
       currentFileSpec.setLastTitle(note.getTitle());
     }
+    
+    if (note.hasInconsistentDiskLocation()) {
+      Object[] options = {"Change file name to match title", "Leave it as is"};
+      int response = JOptionPane.showOptionDialog(this, 
+          "The Note's file name does not match its title", 
+          "Title/File Name Mismatch", 
+          JOptionPane.OK_CANCEL_OPTION, 
+          JOptionPane.WARNING_MESSAGE, 
+          null, 
+          options, 
+          options[0]);
+      boolean fixDiskLocation = (response == 0);
+      if (fixDiskLocation) {
+        System.out.println ("OK, let's fix it!");
+        saveNoteAndDeleteOnRename(note);
+      }
+    }
+    
   }
   
   private void reload (Note note) {
@@ -1220,7 +1238,8 @@ public int checkTags (String find, String replace) {
       } 
       else 
       if ((! newFileName.equals(fileName))
-          && noteIO.exists(newFileName)) {
+          && noteIO.exists(newFileName)
+          && (! newFileName.equalsIgnoreCase(note.getDiskLocationBase()))) {
         trouble.report (this, 
             "A Note already exists with the same Title",
             "Duplicate Found");
@@ -1228,20 +1247,7 @@ public int checkTags (String find, String replace) {
       } else {
         // Modify newNote on disk
         note.setLastModDateToday();
-        String oldDiskLocation = note.getDiskLocation();
-        saveNote(note);
-        String newDiskLocation = note.getDiskLocation();
-        if (! newDiskLocation.equals(oldDiskLocation)) {
-          File oldDiskFile = new File (oldDiskLocation);
-          oldDiskFile.delete();
-          if (folderSyncPrefs.getSync()) {
-            File oldSyncFile = noteIO.getSyncFile(
-                folderSyncPrefs.getSyncFolder(), 
-                folderSyncPrefs.getSyncPrefix(), 
-                oldTitle);
-            oldSyncFile.delete();
-          }
-        }
+        saveNoteAndDeleteOnRename(note);
         if (position.isNewNote()) {
           if (note.hasKey()) {
             addNoteToList ();
@@ -1255,6 +1261,29 @@ public int checkTags (String find, String replace) {
     
     return modOK;
   } // end modIfChanged method
+  
+  /**
+   Save the note, and if it now has a new disk location, 
+   delete the file at the old disk location. 
+  
+   @param note The note to be saved. 
+  */
+  private void saveNoteAndDeleteOnRename(Note note) {
+    String oldDiskLocation = note.getDiskLocation();
+    saveNote(note);
+    String newDiskLocation = note.getDiskLocation();
+    if (! newDiskLocation.equals(oldDiskLocation)) {
+      File oldDiskFile = new File (oldDiskLocation);
+      oldDiskFile.delete();
+      if (folderSyncPrefs.getSync()) {
+        File oldSyncFile = noteIO.getSyncFile(
+            folderSyncPrefs.getSyncFolder(), 
+            folderSyncPrefs.getSyncPrefix(), 
+            oldTitle);
+        oldSyncFile.delete();
+      }
+    }
+  }
   
   /**
    Try to open the current newNote in the local app for the file type. 
@@ -2098,6 +2127,7 @@ public int checkTags (String find, String replace) {
       templateNote.setDate(today);
       templateNote.setAuthor("The Author of the Note");
       templateNote.setRating("5");
+      templateNote.setIndex("Index Term");
       templateNote.setTeaser
         ("A brief sample of the note that will make people want to read more");
       templateNote.setBody("The body of the note");

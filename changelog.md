@@ -1,4 +1,22 @@
 
+## Version 2.20 (2016-08-15)
+
+1. **Added Index Field**
+
+    Added an Index field that can be used to identify terms under which a note should be indexed.
+
+
+## Version 2.10 (2016-06-17)
+
+1. **Allow file extension to be specified (md vs txt)**
+
+    The template file can now have any file extension, and that will become the default for the collection. Additionally, when a particular note is read from disk, its current file extension will be honored in following save operations.
+
+2. **Added Reports Menu**
+
+    Added a Reports Menu, which will be automatically populated based on the presence of PSTextMerge script files, sharing an extension of '.tcz', found within a 'reports' folder.
+
+
 ## Version 2.00 (2016-03-16)
 
 1. **Improved Documentation and Bug Fixes**

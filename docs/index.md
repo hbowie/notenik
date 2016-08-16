@@ -3,7 +3,7 @@
 <h1 id="notenik-user-guide">Notenik User Guide</h1>
 
 
-Version: 2.00
+Version: 2.20
 
 <h2 id="table-of-contents">Table of Contents</h2>
 
@@ -37,6 +37,9 @@ Version: 2.00
       <a href="#add-other-fields">Add Other Fields</a>
     </li>
     <li>
+      <a href="#access-notes-with-other-software">Access Notes with Other Software</a>
+    </li>
+    <li>
       <a href="#create-backups">Create Backups</a>
     </li>
     <li>
@@ -68,6 +71,9 @@ Version: 2.00
     </li>
     <li>
       <a href="#publish-a-favorites-page">Publish a Favorites Page</a>
+    </li>
+    <li>
+      <a href="#reports">Reports</a>
     </li>
     <li>
       <a href="#purge-closed-notes">Purge Closed Notes</a>
@@ -165,7 +171,7 @@ The "Favorites" tag by default identifies Notes you wish to appear in your favor
 
 A basic Note consists of a Title, a Tags line, a Link, plus the actual Body of the Note.
 
-However, other fields can be added by providing a template file for a collection, named 'template.txt'. The template is in the same format as a Note, but with the specification of additional fields. (There's a command on the File menu that can be used to generate a template, which you can then modify with any text editor.) Notenik will then configure its UI dynamically to handle the fields specified in the template for that collection.
+However, other fields can be added by providing a template file for a collection, named 'template.txt' (or 'template.md' if you'd prefer Notenik to use the '.md' file extension for notes in this collection). The template is in the same format as a Note, but with the specification of additional fields. (There's a command on the File menu that can be used to generate a template, which you can then modify with any text editor.) Notenik will then configure its UI dynamically to handle the fields specified in the template for that collection.
 
 Following is a complete list of all the fields that can be used within a note.
 
@@ -200,15 +206,30 @@ The "Favorites" tag may be used to identify favored notes within a collection. T
 
 **Date**: The date of the note, such as the date the note was officially published, or a due date for the note. The date may be expressed in any of a number of common formats. It may also be a partial date, such as a year, or a year and a month. It may or may not contain a specific time of day.
 
+**Index**: One or more terms under which this note should appear in an index of the collection. Multiple terms can be placed on separate Index lines within the note, or can be entered as one field by using a semi-colon (';') to end each term entry. A URL to be associated with the term can be placed in parentheses following the term. If the term should reference a specific anchor within the note, then the anchor can be specified by preceding it with the usual pound sign ('#').
+
 **Teaser**: An excerpt from the note used as a teaser in a list of notes. The teaser may be formatted using Markdown.
 
 **Body**: The body of the note; in other words, an indicator that the document portion of the note follows. In this case the field value is expected on following lines. The Body field will always be treated as the final field in a note, to avoid having portions of the document inadvertently treated as fields.
+
+Note that, if the 'Body:' identifier is omitted, then Notenik will by default consider any block of text following other fields to constitute the body of the note.
 
 In addition, the following two fields are derived from file system data about the file.
 
 **Mod Date**: This is the last modification of the note, as maintained by the file system (not specified within the contents of the note, but available as note metadata).
 
 **File Size**: This is the size of the file, in characters, as maintained by the file system (not specified within the contents of the note, but available as metadata).
+
+<h2 id="access-notes-with-other-software">Access Notes with Other Software</h2>
+
+
+A single note, or a collection of notes, may be accessed and manipulated by any software that recognizes the Notenik data format.
+
+Java classes for Notenik data access can be found on [GitHub](https://github.com/hbowie/psdatalib) in the following package:
+
+* com.powersurgepub.psdatalib.notenik
+
+[PSTextMerge](http://www.powersurgepub.com/products/pstextmerge/index.html) is one example of another application that can access and manipulate data stored in the Notenik format. One input type recognized by PSTextMerge is a Note Index, which can be used to generate an index from the Index fields identified for a note collection.
 
 <h2 id="create-backups">Create Backups</h2>
 
@@ -322,6 +343,17 @@ You will then see a window with the following fields available to you.
 
 
 You can easily publish a single web page containing your favorite links arranged in a series of columns and rows. Use the Favorites tab on the Notenik preferences to specify the number of columns to appear, and the maximum number of rows to include in a single column.
+
+<h2 id="reports">Reports</h2>
+
+
+The Reports menu allows you to select from a list of reports, and then generate the report of your choice. Reports are generally HTML web pages generated from PSTextMerge scripts.
+
+Any number of report scripts and templates may be placed within a folder named 'reports' that appears inside each folder of notes.
+
+If a 'reports' folder has not yet been created and populated for a particular Collection, then a set of standard reports will be loaded from the application's resources folder.
+
+Reports are generally a simpler and more straightforward approach to the Publish function described above.
 
 <h2 id="purge-closed-notes">Purge Closed Notes</h2>
 
