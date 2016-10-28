@@ -121,7 +121,7 @@ A toolbar with multiple buttons appears at the top of the user interface.
 * **&lt;** -- Display the next Note in the collection.
 * **&gt;** -- Display the next Note in the collection.
 * **&gt;&gt;** -- Display the last Note in the collection.
-* **Launch** -- Launch the link from thee current Note in your Web browser. (This may also be accomplished by selecting Launch from the dropdown that appears just to the left of the URL itself.)
+* **Launch** -- Launch the link from the current Note in your Web browser. (This may also be accomplished by selecting Launch from the dropdown that appears just to the left of the URL itself.)
 * **Find** -- Looks for the text entered in the field just to the left of this button, and displays the first Note containing this text in any field, ignoring case. After finding the first occurrence, this button's text changes to **Again**, to allow you to search again for the next Note containing the specified text.
 
 <h2 id="organize-your-notes-into-collections">Organize Your Notes into Collections</h2>

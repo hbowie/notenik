@@ -1665,7 +1665,7 @@ public int checkTags (String find, String replace) {
   }
   
   /**
-   Build the user interface to view and update one newNote. 
+   Build the user interface to view and update one Note. 
   */
   private void buildNoteTabs() {
     
