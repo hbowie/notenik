@@ -143,6 +143,8 @@ Since your Notes are stored as plain text files within folders, they can be easi
 
 Since your Notes are stored as plain text files, in an easy-to-read format, they can easily be edited using any text editor on any device. In fact, from within Notenik, you can select Text Edit Note from the Note menu to have the current Note opened in your preferred text editor.
 
+Each field in a note consists of the field name, followed by a colon and one or more spaces, followed by the field value. A field name must always start at the beginning of a line. A field name may not consist of more than 48 characters, and may not contain a comma (','). A field value may consist of multiple lines. The Body field, if present, will always be the last field in a note, since all following text will be assumed to be part of the body (even if it contains other strings of text that might otherwise appear to be additional field names).
+
 <h2 id="use-markdown-in-the-body-of-your-notes">Use Markdown in the Body of your Notes</h2>
 
 
@@ -320,7 +322,7 @@ You will then see a window with the following fields available to you.
 
 **Select**: Use the drop-down list to select the template you wish to use.
 
-	**Favorites Plus**: This template will produce the following files and formats.
+* **Favorites Plus**: This template will produce the following files and formats.
 
 	1. index.html -- This file is an index file with links to the other files. You can browse this locally by selecting **Browse local index** from the **File** menu.
 	2. favorites.html -- This file tries to arrange all of the Notes you have tagged as "Favorites" into a four-column format that will fit on a single page.
