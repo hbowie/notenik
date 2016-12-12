@@ -55,6 +55,7 @@ public class NotenikMainFrame
     implements 
       ActionListener,
       AppToBackup,
+      DisplayWindow,
       TagsChangeAgent,
       FileSpecOpener,
       PublishAssistant,
@@ -63,7 +64,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "2.20";
+  public static final String PROGRAM_VERSION = "2.30";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -211,6 +212,10 @@ public class NotenikMainFrame
   Transferable        clipContents = null;
   
   private             TextMergeHarness    textMerge = null;
+  
+  private             DisplayTab          displayTab;
+  public static final int DISPLAY_TAB_INDEX = 0;
+  public static final int CONTENT_TAB_INDEX = 1;
 
   /** Creates new form NotenikMainFrame */
   public NotenikMainFrame() {
@@ -320,6 +325,8 @@ public class NotenikMainFrame
     linkTweaker = new LinkTweaker(this, generalPrefs.getPrefsTabs());
     
     fileInfoWindow = new FileInfoWindow(this);
+    
+    displayTab = new DisplayTab(generalPrefs.getDisplayPrefs());
 
     // Get System Properties
     userName = System.getProperty ("user.name");
@@ -416,6 +423,7 @@ public class NotenikMainFrame
       fileName = "";
       displayNote();
       tagsTextSelector.setText (selectedTags);
+      itemTabbedPane.setSelectedIndex(CONTENT_TAB_INDEX);
     }
   }
   
@@ -1087,13 +1095,24 @@ public int checkTags (String find, String replace) {
       // Do nothing until an item is selected
     }
   }
+  
+  public void displayPrefsUpdated(DisplayPrefs displayPrefs) {
+    if (position != null && displayTab != null) {
+      buildDisplayTab();
+    }
+  }
 
+  /**
+   Populate both the Display and Edit tabs with data from the current note. 
+  */
   public void displayNote () {
     Note note = position.getNote();
     if (note.hasDiskLocation()) {
       reload (note);
     }
     fileName = note.getFileName();
+    
+    buildDisplayTab();
     
     if (widgets != null && widgets.size() == noteIO.getNumberOfFields()) {
       for (int i = 0; i < noteIO.getNumberOfFields(); i++) {
@@ -1150,6 +1169,67 @@ public int checkTags (String find, String replace) {
     
   }
   
+  /**
+   Provide a static, non-editable display of the note on the display tab. 
+  */
+  private void buildDisplayTab() {
+    Note note = position.getNote();
+    
+    displayTab.startDisplay();
+    if (note.hasTags()) {
+      displayTab.displayTags(note.getTags());
+    }
+    
+    displayTab.displayTitle(note.getTitle());
+    
+    if (note.hasLink()) {
+      displayTab.displayLink(
+          NoteParms.LINK_FIELD_NAME, 
+          "", 
+          note.getLinkAsString());
+    }
+    
+    if (widgets != null && widgets.size() == noteIO.getNumberOfFields()) {
+      for (int i = 0; i < noteIO.getNumberOfFields(); i++) {
+        DataFieldDefinition fieldDef = noteIO.getRecDef().getDef(i);
+        String fieldName = fieldDef.getProperName();
+        DataWidget widget = widgets.get(i);
+        if (fieldName.equalsIgnoreCase(NoteParms.TITLE_FIELD_NAME)) {
+          // Ignore -- already handled above
+        }
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.LINK_FIELD_NAME)) {
+          // Ignore -- already handled above
+        }
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.TAGS_FIELD_NAME)) {
+          // Ignore -- already handled above
+        }
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.BODY_FIELD_NAME)) {
+          // Ignore -- handled below
+        } 
+        else {
+          DataField nextField = note.getField(i);
+          displayTab.displayField(fieldName, nextField.getData());
+        }
+
+      } // end for each data field
+    
+      if (note.hasBody()) {
+        displayTab.displayLabelOnly("Body");
+        displayTab.displayBody(note.getBody());
+      }
+
+      displayTab.displayDivider();
+    
+    }
+    
+    displayTab.displayDateAdded(note.getLastModDateStandard());
+    
+    displayTab.finishDisplay();
+  }
+  
   private void reload (Note note) {
       /* ClubEventReader reader 
           = new ClubEventReader (
@@ -1166,6 +1246,33 @@ public int checkTags (String find, String replace) {
       }
       
       reader.close(); */
+  }
+  
+  /**
+   User has pressed the OK button to indicate that they are done editing. 
+   */
+  private void doneEditing() {
+    if (position != null && displayTab != null) {
+      modIfChanged();
+      positionAndDisplay();
+      activateDisplayTab();
+    }
+  } 
+  
+  /**
+    Changes the active tab to the tab displaying an individual item.
+   */
+  public void activateDisplayTab () {
+    itemTabbedPane.setSelectedIndex (DISPLAY_TAB_INDEX);
+    okButton.setEnabled(false);
+  }
+  
+  /**
+    Changes the active tab to the tab displaying an individual item.
+   */
+  public void activateItemTab () {
+    itemTabbedPane.setSelectedIndex (CONTENT_TAB_INDEX);
+    okButton.setEnabled(true);
   }
 
   /**
@@ -1659,7 +1766,7 @@ public int checkTags (String find, String replace) {
   
   private void closeNote() {
     Note note = position.getNote();
-    String closedStr = ItemStatusConfig.getShared().getClosedString();
+    String closedStr = noteIO.getNoteParms().getItemStatusConfig().getClosedString();
     statusWidget.setText(closedStr);
     // newNote.setStatus(ItemStatusConfig.getShared().getClosedString());
   }
@@ -1683,7 +1790,7 @@ public int checkTags (String find, String replace) {
     WidgetWithLabel widgetWithLabel = new WidgetWithLabel();
     for (int i = 0; i < noteIO.getNumberOfFields(); i++) {
       DataFieldDefinition fieldDef = noteIO.getRecDef().getDef(i);
-      widgetWithLabel = NoteParms.getWidgetWithLabel(fieldDef, this, gb); 
+      widgetWithLabel = noteIO.getNoteParms().getWidgetWithLabel(fieldDef, this, gb); 
       
       switch (fieldDef.getType()) {
         // Special processing for Tags
@@ -1719,8 +1826,11 @@ public int checkTags (String find, String replace) {
     gb.add(lastModDateLabel);
     gb.add(lastModDateText);
     
-    mainSplitPane.setRightComponent(notePanel);
-    mainSplitPane.setResizeWeight(0.5);
+    itemTabbedPane.removeAll();
+    itemTabbedPane.add("Display", displayTab);
+    itemTabbedPane.add("Edit", notePanel);
+    // mainSplitPane.setRightComponent(notePanel);
+    // mainSplitPane.setResizeWeight(0.5);
     
     if (tagsTextSelector != null) {
       tagsTextSelector.setValueList(noteList.getTagsList());
@@ -2987,7 +3097,7 @@ public int checkTags (String find, String replace) {
   private void initComponents() {
 
     mainToolBar = new javax.swing.JToolBar();
-    urlOKButton = new javax.swing.JButton();
+    okButton = new javax.swing.JButton();
     urlNewButton = new javax.swing.JButton();
     urlDeleteButton = new javax.swing.JButton();
     urlFirstButton = new javax.swing.JButton();
@@ -3005,6 +3115,7 @@ public int checkTags (String find, String replace) {
     treePanel = new javax.swing.JPanel();
     treeScrollPane = new javax.swing.JScrollPane();
     noteTree = new javax.swing.JTree();
+    itemTabbedPane = new javax.swing.JTabbedPane();
     mainMenuBar = new javax.swing.JMenuBar();
     fileMenu = new javax.swing.JMenu();
     fileNewMenuItem = new javax.swing.JMenuItem();
@@ -3075,22 +3186,22 @@ public int checkTags (String find, String replace) {
 
     mainToolBar.setRollover(true);
 
-    urlOKButton.setFont(new java.awt.Font("Lucida Grande", 0, 14)); // NOI18N
-    urlOKButton.setText("OK");
-    urlOKButton.setToolTipText("Complete your changes to this item");
-    urlOKButton.setFocusable(false);
-    urlOKButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-    urlOKButton.setMargin(new java.awt.Insets(0, 4, 4, 4));
-    urlOKButton.setMaximumSize(new java.awt.Dimension(60, 30));
-    urlOKButton.setMinimumSize(new java.awt.Dimension(30, 26));
-    urlOKButton.setPreferredSize(new java.awt.Dimension(40, 28));
-    urlOKButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-    urlOKButton.addActionListener(new java.awt.event.ActionListener() {
+    okButton.setFont(new java.awt.Font("Lucida Grande", 0, 14)); // NOI18N
+    okButton.setText("OK");
+    okButton.setToolTipText("Complete your changes to this item");
+    okButton.setFocusable(false);
+    okButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+    okButton.setMargin(new java.awt.Insets(0, 4, 4, 4));
+    okButton.setMaximumSize(new java.awt.Dimension(60, 30));
+    okButton.setMinimumSize(new java.awt.Dimension(30, 26));
+    okButton.setPreferredSize(new java.awt.Dimension(40, 28));
+    okButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+    okButton.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
-        urlOKButtonActionPerformed(evt);
+        okButtonActionPerformed(evt);
       }
     });
-    mainToolBar.add(urlOKButton);
+    mainToolBar.add(okButton);
 
     urlNewButton.setFont(new java.awt.Font("Lucida Grande", 0, 14)); // NOI18N
     urlNewButton.setText("+");
@@ -3284,6 +3395,13 @@ public int checkTags (String find, String replace) {
     collectionTabbedPane.addTab("Tags", treePanel);
 
     mainSplitPane.setLeftComponent(collectionTabbedPane);
+
+    itemTabbedPane.addChangeListener(new javax.swing.event.ChangeListener() {
+      public void stateChanged(javax.swing.event.ChangeEvent evt) {
+        itemTabbedPaneStateChanged(evt);
+      }
+    });
+    mainSplitPane.setRightComponent(itemTabbedPane);
 
     getContentPane().add(mainSplitPane, java.awt.BorderLayout.CENTER);
 
@@ -3786,10 +3904,9 @@ private void findMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-
   findNote();
 }//GEN-LAST:event_findMenuItemActionPerformed
 
-private void urlOKButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_urlOKButtonActionPerformed
-    modIfChanged();
-    positionAndDisplay();
-}//GEN-LAST:event_urlOKButtonActionPerformed
+private void okButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_okButtonActionPerformed
+  doneEditing();
+}//GEN-LAST:event_okButtonActionPerformed
 
 private void flattenTagsMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_flattenTagsMenuItemActionPerformed
   flattenTags();
@@ -3931,6 +4048,22 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     importTabDelimited();
   }//GEN-LAST:event_importTabDelimitedMenuItemActionPerformed
 
+  private void itemTabbedPaneStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_itemTabbedPaneStateChanged
+    int index = itemTabbedPane.getSelectedIndex();
+    if (index == DISPLAY_TAB_INDEX) {
+      if (position != null 
+          && displayTab != null 
+          && widgets != null 
+          && (! widgets.isEmpty())) {
+        modIfChanged();
+        positionAndDisplay();
+      }
+      okButton.setEnabled(false);
+    } else {
+      okButton.setEnabled(true);
+    }
+  }//GEN-LAST:event_itemTabbedPaneStateChanged
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -3969,6 +4102,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem importNotenikMenuItem;
   private javax.swing.JMenuItem importTabDelimitedMenuItem;
   private javax.swing.JMenuItem importXMLMenuItem;
+  private javax.swing.JTabbedPane itemTabbedPane;
   private javax.swing.JSeparator jSeparator1;
   private javax.swing.JPopupMenu.Separator jSeparator10;
   private javax.swing.JPopupMenu.Separator jSeparator11;
@@ -3991,6 +4125,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenu noteMenu;
   private javax.swing.JTable noteTable;
   private javax.swing.JTree noteTree;
+  private javax.swing.JButton okButton;
   private javax.swing.JMenuItem openMenuItem;
   private javax.swing.JMenuItem openNoteMenuItem;
   private javax.swing.JMenu openRecentMenu;
@@ -4014,7 +4149,6 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JButton urlLastButton;
   private javax.swing.JButton urlNewButton;
   private javax.swing.JButton urlNextButton;
-  private javax.swing.JButton urlOKButton;
   private javax.swing.JButton urlPriorButton;
   private javax.swing.JMenuItem validateURLsMenuItem;
   private javax.swing.JMenu windowMenu;

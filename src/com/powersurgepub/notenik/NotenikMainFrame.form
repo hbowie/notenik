@@ -517,7 +517,7 @@
 
       <Layout class="org.netbeans.modules.form.compat2.layouts.DesignBoxLayout"/>
       <SubComponents>
-        <Component class="javax.swing.JButton" name="urlOKButton">
+        <Component class="javax.swing.JButton" name="okButton">
           <Properties>
             <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
               <Font name="Lucida Grande" size="14" style="0"/>
@@ -541,7 +541,7 @@
             <Property name="verticalTextPosition" type="int" value="3"/>
           </Properties>
           <Events>
-            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="urlOKButtonActionPerformed"/>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="okButtonActionPerformed"/>
           </Events>
         </Component>
         <Component class="javax.swing.JButton" name="urlNewButton">
@@ -852,6 +852,18 @@
               </SubComponents>
             </Container>
           </SubComponents>
+        </Container>
+        <Container class="javax.swing.JTabbedPane" name="itemTabbedPane">
+          <Events>
+            <EventHandler event="stateChanged" listener="javax.swing.event.ChangeListener" parameters="javax.swing.event.ChangeEvent" handler="itemTabbedPaneStateChanged"/>
+          </Events>
+          <Constraints>
+            <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.support.JSplitPaneSupportLayout" value="org.netbeans.modules.form.compat2.layouts.support.JSplitPaneSupportLayout$JSplitPaneConstraintsDescription">
+              <JSplitPaneConstraints position="right"/>
+            </Constraint>
+          </Constraints>
+
+          <Layout class="org.netbeans.modules.form.compat2.layouts.support.JTabbedPaneSupportLayout"/>
         </Container>
       </SubComponents>
     </Container>

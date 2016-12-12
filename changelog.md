@@ -1,4 +1,11 @@
 
+## Version 2.30 (2016-12-11)
+
+1. **Added Display Tab and Display Preferences**
+
+    Added a Display tab to allow the note to be viewed without editing, and a Display Preferences tab to allow the look and feel of the Display tab to be tweaked.
+
+
 ## Version 2.20 (2016-08-15)
 
 1. **Added Index Field**

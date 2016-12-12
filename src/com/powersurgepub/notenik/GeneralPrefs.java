@@ -24,12 +24,13 @@ package com.powersurgepub.notenik;
   import javax.swing.*;
 
 /**
- *
- * @author  hbowie
+ * Preferences for Notenik. 
+
+ * @author  Herb Bowie
  */
 public class GeneralPrefs 
   extends javax.swing.JFrame
-    implements WindowToManage {
+    implements WindowToManage, DisplayWindow {
   
   private NotenikMainFrame      mainFrame;
 
@@ -40,6 +41,7 @@ public class GeneralPrefs
   private boolean           setupComplete = false;
   
   private CommonPrefs       commonPrefs;
+  private DisplayPrefs      displayPrefs;
   private WebPrefs          webPrefs;
   private FavoritesPrefs    favoritesPrefs;
   private FilePrefs         filePrefs = null;
@@ -56,6 +58,9 @@ public class GeneralPrefs
 
     commonPrefs = CommonPrefs.getShared();
     prefsTabs.addTab("General", commonPrefs);
+    
+    displayPrefs = new DisplayPrefs(this);
+    prefsTabs.addTab("Display", displayPrefs);
     
     webPrefs = new WebPrefs (mainFrame);
     prefsTabs.addTab("Web", webPrefs);
@@ -81,6 +86,15 @@ public class GeneralPrefs
     if (filePrefs != null) {
       filePrefs.savePrefs();
     }
+    displayPrefs.savePrefs();
+  }
+  
+  public DisplayPrefs getDisplayPrefs() {
+    return displayPrefs;
+  }
+  
+  public void displayPrefsUpdated(DisplayPrefs displayPrefs) {
+    mainFrame.displayPrefsUpdated(displayPrefs);
   }
   
   public WebPrefs getWebPrefs() {

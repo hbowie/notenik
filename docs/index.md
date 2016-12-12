@@ -3,7 +3,7 @@
 <h1 id="notenik-user-guide">Notenik User Guide</h1>
 
 
-Version: 2.20
+Version: 2.30
 
 <h2 id="table-of-contents">Table of Contents</h2>
 
@@ -20,6 +20,9 @@ Version: 2.20
     </li>
     <li>
       <a href="#sync-to-the-cloud-and-to-other-devices">Sync to the Cloud and to other Devices</a>
+    </li>
+    <li>
+      <a href="#use-multiple-fields-within-your-notes">Use Multiple Fields Within Your Notes</a>
     </li>
     <li>
       <a href="#edit-your-notes-with-any-text-editor">Edit Your Notes with any Text Editor</a>
@@ -82,6 +85,9 @@ Version: 2.20
       <a href="#findreplace-and-other-operations-on-collections">Find/Replace and Other Operations on Collections</a>
     </li>
     <li>
+      <a href="#tailor-the-appearance-of-the-note-display">Tailor the Appearance of the Note Display</a>
+    </li>
+    <li>
       <a href="#modify-the-look-and-feel">Modify the Look and Feel</a>
     </li>
     <li>
@@ -131,19 +137,28 @@ Each Collection of Notes is stored within its own folder (aka directory) on disk
 
 Each Note must have a unique title within its Collection. Each note's file name is based on its title, and each note's file name must also be unique within its folder.
 
-One of the options on the File menu is to select from a list of recently opened Collections. You can adjust the number of Collections available on the Files tab within the Notenik Preferences. This is also the place where you can specify whether you would like Notenik to open the most recent Collection used when it starts up, or always open one specific Collection.
+One of the options on the File menu is to select from a list of recently opened Collections. You can adjust the number of Collections available on the Files tab within the Notenik Preferences. This is also the place where you can specify whether you would like Notenik to open the most recently used Collection used when it starts up, or always open one specific Collection.
 
 <h2 id="sync-to-the-cloud-and-to-other-devices">Sync to the Cloud and to other Devices</h2>
 
 
 Since your Notes are stored as plain text files within folders, they can be easily synced between devices using Dropbox, iCloud Drive, or the sync service of your choice.
 
+<h2 id="use-multiple-fields-within-your-notes">Use Multiple Fields Within Your Notes</h2>
+
+
+Each note contains a number of fields. At its most basic, a note consists of a Title field and a Body field.
+
+Each field in a note consists of the field label, followed by a colon and one or more spaces, followed by the field value.
+
+A field label must always start at the beginning of a line. A field label may not consist of more than 48 characters, and may not contain a comma (',').
+
+A field value may consist of multiple lines. The Body field, if present, will always be the last field in a note, since all following text will be assumed to be part of the body (even if it contains other strings of text that might otherwise appear to be additional field labels).
+
 <h2 id="edit-your-notes-with-any-text-editor">Edit Your Notes with any Text Editor</h2>
 
 
 Since your Notes are stored as plain text files, in an easy-to-read format, they can easily be edited using any text editor on any device. In fact, from within Notenik, you can select Text Edit Note from the Note menu to have the current Note opened in your preferred text editor.
-
-Each field in a note consists of the field name, followed by a colon and one or more spaces, followed by the field value. A field name must always start at the beginning of a line. A field name may not consist of more than 48 characters, and may not contain a comma (','). A field value may consist of multiple lines. The Body field, if present, will always be the last field in a note, since all following text will be assumed to be part of the body (even if it contains other strings of text that might otherwise appear to be additional field names).
 
 <h2 id="use-markdown-in-the-body-of-your-notes">Use Markdown in the Body of your Notes</h2>
 
@@ -175,7 +190,7 @@ A basic Note consists of a Title, a Tags line, a Link, plus the actual Body of t
 
 However, other fields can be added by providing a template file for a collection, named 'template.txt' (or 'template.md' if you'd prefer Notenik to use the '.md' file extension for notes in this collection). The template is in the same format as a Note, but with the specification of additional fields. (There's a command on the File menu that can be used to generate a template, which you can then modify with any text editor.) Notenik will then configure its UI dynamically to handle the fields specified in the template for that collection.
 
-Following is a complete list of all the fields that can be used within a note.
+Following is a complete list of all the predefined fields that can be used within a note.
 
 **Title**: Each note in a collection must have a unique title. If the contents of the note file does not contain a title field, then the file name (without the extension) will be used as the title of the note.
 
@@ -203,6 +218,10 @@ The "Favorites" tag may be used to identify favored notes within a collection. T
 * 7 - Pending Recurs
 * 8 - Canceled
 * 9 - Closed
+
+The labels may be modified by placing a series of integer + label pairs in the data area of the relevant template file, with separating punctuation. The template line might look something like this:
+
+	Status: 1 - Idea; 4 - In Work; 9 - Published;
 
 **Seq**: A revision letter or version number or any other value used to keep notes in a prescribed sequence.
 
@@ -378,6 +397,11 @@ The following operations are available from the Collection menu.
 * Change all your tags to lower case letters.
 
 * Validate all the links in your collection.
+
+<h2 id="tailor-the-appearance-of-the-note-display">Tailor the Appearance of the Note Display</h2>
+
+
+The Display tab in the Notenik preferences allows you to change the font, font size, and foreground and background colors used for the Display of each Note.
 
 <h2 id="modify-the-look-and-feel">Modify the Look and Feel</h2>
 
