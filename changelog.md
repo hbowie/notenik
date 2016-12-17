@@ -1,4 +1,11 @@
 
+## Version 2.31 (2016-12-16)
+
+1. **Logging Change**
+
+    Created and displayed logging screen at beginning of startup, to help with debugging when main screen never loads. Also removed debugging display of display tab HTML code.
+
+
 ## Version 2.30 (2016-12-11)
 
 1. **Added Display Tab and Display Preferences**

@@ -340,7 +340,7 @@ public class DisplayTab
   public void finishDisplay() {
     text.append ("</body>");
     text.append ("</html>");
-    Logger.getShared().recordEvent(LogEvent.NORMAL, text.toString(), false);
+    // Logger.getShared().recordEvent(LogEvent.NORMAL, text.toString(), false);
     displayEditorPane.setText (text.toString());
     displayEditorPane.setCaretPosition(0);
   }

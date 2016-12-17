@@ -64,7 +64,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "2.30";
+  public static final String PROGRAM_VERSION = "2.31";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -219,6 +219,15 @@ public class NotenikMainFrame
 
   /** Creates new form NotenikMainFrame */
   public NotenikMainFrame() {
+    
+    logWindow = new LogWindow ();
+    logOutput = new LogOutputText(logWindow.getTextArea());
+    Logger.getShared().setLog (logOutput);
+    Logger.getShared().setLogAllData (false);
+    Logger.getShared().setLogThreshold (LogEvent.NORMAL);
+    WindowMenuManager.getShared().add(logWindow);
+    WindowMenuManager.getShared().makeVisible(logWindow);
+    
     appster = new Appster
         ("powersurgepub", "com",
           PROGRAM_NAME, PROGRAM_VERSION,
@@ -232,7 +241,7 @@ public class NotenikMainFrame
     reports = new Reports(reportsMenu);
     
     getContentPane().add(statusBar, java.awt.BorderLayout.SOUTH);
-    WindowMenuManager.getShared(windowMenu);
+    WindowMenuManager.getShared().setWindowMenu(windowMenu);
     currentDirectory = fileChooser.getCurrentDirectory();
 
     // Set About, Quit and other Handlers in platform-specific ways
@@ -287,13 +296,7 @@ public class NotenikMainFrame
     CommonPrefs.getShared().setMainWindow(this);
     // setPreferredCollectionView();
 
-    // Set up Logging
-    logWindow = new LogWindow ();
-    logOutput = new LogOutputText(logWindow.getTextArea());
-    Logger.getShared().setLog (logOutput);
-    Logger.getShared().setLogAllData (false);
-    Logger.getShared().setLogThreshold (LogEvent.NORMAL);
-    WindowMenuManager.getShared().add(logWindow);
+
 
     // Get App Folder
     appFolder = home.getAppFolder();
@@ -396,6 +399,8 @@ public class NotenikMainFrame
     editMenuItemMaker.addCutCopyPaste (editMenu);
 
     CommonPrefs.getShared().appLaunch();
+    
+    WindowMenuManager.getShared().hide(logWindow);
 
   }
 
