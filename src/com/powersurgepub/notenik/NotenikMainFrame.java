@@ -25,6 +25,7 @@ package com.powersurgepub.notenik;
   import com.powersurgepub.psdatalib.notenik.*;
   import com.powersurgepub.psdatalib.psdata.values.*;
   import com.powersurgepub.psdatalib.pslist.*;
+  import com.powersurgepub.psdatalib.script.*;
   import com.powersurgepub.psdatalib.tabdelim.*;
   import com.powersurgepub.psdatalib.textmerge.*;
   import com.powersurgepub.psdatalib.txbio.*;
@@ -59,12 +60,13 @@ public class NotenikMainFrame
       TagsChangeAgent,
       FileSpecOpener,
       PublishAssistant,
+      ScriptExecutor,
       URLValidationRegistrar,
       XHandler,
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "2.31";
+  public static final String PROGRAM_VERSION = "2.40";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -239,6 +241,7 @@ public class NotenikMainFrame
     
     // textMerge = TextMergeHarness.getShared(noteList);
     reports = new Reports(reportsMenu);
+    reports.setScriptExecutor(this);
     
     getContentPane().add(statusBar, java.awt.BorderLayout.SOUTH);
     WindowMenuManager.getShared().setWindowMenu(windowMenu);
@@ -260,6 +263,7 @@ public class NotenikMainFrame
     folderSyncPrefs = collectionPrefs.getFolderSyncPrefs();
     
     webPrefs = generalPrefs.getWebPrefs();
+    reports.setWebPrefs(webPrefs);
     
     filePrefs = new FilePrefs(this);
     filePrefs.loadFromPrefs();
@@ -2344,6 +2348,15 @@ public int checkTags (String find, String replace) {
     WindowMenuManager.getShared().makeVisible(window);
     window.toFront();
   }
+  
+  /**
+   Method for callback while executing a PSTextMerge script. 
+  
+   @param operand 
+  */
+  public void scriptCallback (String operand) {
+    pubOperation(reports.getReportsFolder(), operand);
+  }
 
   /**
    Any pre-processing to do before PublishWindow starts its publication
@@ -2419,6 +2432,7 @@ public int checkTags (String find, String replace) {
   private boolean publishFavorites (File publishTo) {
     
     // Publish selected favorites
+    Logger.getShared().recordEvent(LogEvent.NORMAL, "Publishing Favorites", false);
     favoritesWritten = false;
     if (! noteFile.getName().equalsIgnoreCase (FAVORITES_FILE_NAME)) {
       favoritesWritten = exporter.publishFavorites

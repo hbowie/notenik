@@ -22,6 +22,7 @@ package com.powersurgepub.notenik;
   import com.powersurgepub.psdatalib.txbio.*;
   import com.powersurgepub.psdatalib.txbmodel.*;
   import com.powersurgepub.psdatalib.tabdelim.*;
+  import com.powersurgepub.pspub.*;
   import com.powersurgepub.pstextio.*;
   import com.powersurgepub.psutils.*;
   import java.io.*;
@@ -658,6 +659,8 @@ public class NoteExport {
   public boolean publishFavorites
       (File publishTo, NoteList notes, FavoritesPrefs favoritesPrefs) {
 
+    Logger.getShared().recordEvent(LogEvent.NORMAL, 
+        "Publishing Favorites to " + publishTo.toString(), false);
     this.favoritesPrefs = favoritesPrefs;
     favoritesColumns = favoritesPrefs.getFavoritesColumns();
     int favoritesRows    = favoritesPrefs.getFavoritesRows();
@@ -671,31 +674,31 @@ public class NoteExport {
     switch (favoritesColumns) {
       case 1:
         favoritesEmptyColumns = 0;
-        favoritesColumnClass = "span12";
+        favoritesColumnClass = "col-md-12";
         break;
       case 2:
         favoritesEmptyColumns = 0;
-        favoritesColumnClass = "span6";
+        favoritesColumnClass = "col-md-6";
         break;
       case 3:
         favoritesEmptyColumns = 0;
-        favoritesColumnClass = "span4";
+        favoritesColumnClass = "col-md-4";
         break;
       case 4:
         favoritesEmptyColumns = 0;
-        favoritesColumnClass = "span3";
+        favoritesColumnClass = "col-md-3";
         break;
       case 5:
         favoritesEmptyColumns = 1;
-        favoritesColumnClass = "span2";
+        favoritesColumnClass = "col-md-2";
         break;
       case 6:
         favoritesEmptyColumns = 0;
-        favoritesColumnClass = "span2";
+        favoritesColumnClass = "col-md-2";
         break;
       default:
         favoritesEmptyColumns = 0;
-        favoritesColumnClass = "span3";
+        favoritesColumnClass = "col-md-3";
     }
     
     ArrayList favoritesTagsList = getFavoritesList(favoritesTags);
@@ -827,6 +830,8 @@ public class NoteExport {
     markupWriter.openForOutput();
     startFile (notes.getTitle() + " | " + suffix, true, false);
 
+    /* Let's kill the NavBar -- Doesn't make sense when used for reports
+    
     startDiv ("navbar navbar-inverse navbar-fixed-top");
     startDiv ("navbar-inner");
     startDiv ("container");
@@ -870,6 +875,8 @@ public class NoteExport {
     endDiv();
     endDiv();
     endDiv();
+    
+    */
     
     startDiv("container");
     startDiv("row");
@@ -1302,7 +1309,7 @@ public class NoteExport {
     writeMetadataNameAndContent ("generator", Home.getShared().getProgramName() + " "
         + Home.getShared().getProgramVersion());
     if (bootstrap) {
-      writeStyleSheetLink ("bootstrap/css/bootstrap.css");
+      writeStyleSheetLink ("bootstrap/css/bootstrap.min.css");
       beginStartTag (TextType.STYLE);
       addAttribute (TextType.TYPE, TextType.TEXT_CSS);
       finishStartTag(TextType.STYLE);
@@ -1311,9 +1318,8 @@ public class NoteExport {
       writeLine ("        padding-bottom: 40px;");
       writeLine ("      }");
       writeEndTag (TextType.STYLE);
-      writeStyleSheetLink ("bootstrap/css/bootstrap-responsive.css");
-      writeScriptSrc ("javascript/jquery.js");
-      writeScriptSrc ("bootstrap/js/bootstrap.js");
+      writeScriptSrc ("bootstrap/js/jquery.min.js");
+      writeScriptSrc ("bootstrap/js/bootstrap.min.js");
     }
     if (outliner) {
       writeScriptSrc ("javascript/outliner.js");
@@ -1325,15 +1331,8 @@ public class NoteExport {
     if (cssHref != null && cssHref.length() > 0) {
       writeStyleSheetLink (cssHref);
     }
-    beginStartTag (TextType.STYLE);
-    addAttribute (TextType.TYPE, TextType.TEXT_CSS);
-    finishStartTag(TextType.STYLE);
-    writeLine ("      body, p, h1, li {");
-    writeLine ("        font-family: '" + mainFrame.getWebPrefs().getFontFamily() + "';");
-    writeLine ("        font-size: " + mainFrame.getWebPrefs().getFontSize() + ";");
-    writeLine ("      }");
-    writeEndTag (TextType.STYLE);
-    writeStyleSheetLink ("css/styles.css");
+    writeStyleSheetLink (Reports.WEBPREFS_FILE);
+    writeStyleSheetLink ("styles.css");
 
     writeLine ("    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->");
     writeLine ("    <!--[if lt IE 9]>");

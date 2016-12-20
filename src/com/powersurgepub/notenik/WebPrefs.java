@@ -16,6 +16,7 @@
 
 package com.powersurgepub.notenik;
 
+  import com.powersurgepub.pspub.*;
   import com.powersurgepub.psutils.*;
 
 /**
@@ -24,7 +25,8 @@ package com.powersurgepub.notenik;
  @author Herb Bowie
  */
 public class WebPrefs 
-    extends javax.swing.JPanel {
+    extends javax.swing.JPanel 
+        implements WebPrefsProvider {
   
   public static final String CSS_HREF = "css-href";
   
