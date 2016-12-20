@@ -1,4 +1,11 @@
 
+## Version 2.40 (2016-12-20)
+
+1. **Refinements to the Reports Feature**
+
+    Several refinements to the Reports function were implemented.
+
+
 ## Version 2.31 (2016-12-16)
 
 1. **Logging Change**

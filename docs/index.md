@@ -1,9 +1,9 @@
 <!-- Generated using template product-user-guide-template.mdtoc -->
-<!-- Generated using template product-custom-user-guide-template.md -->
+<!-- Generated using template notenik.md -->
 <h1 id="notenik">Notenik</h1>
 
 
-Version: 2.31, released 16 Dec 2016 <[details](http://www.powersurgepub.com/products/notenik/versions.html)>
+Version: 2.40, released 20 Dec 2016 <[details](http://www.powersurgepub.com/products/notenik/versions.html)>
 
 
 <h2 id="table-of-contents">Table of Contents</h2>
@@ -159,12 +159,12 @@ Notenik is really three things:
 <h2 id="principles">Principles</h2>
 
 
-Notenik is based on the following design principles.
+The Notenik design is based on the following principles.
 
 * A Note is something you record using a mixture of letters, numbers and punctuation.
 * A Note may contain one or more Fields, each identified by its own Label.
 * At its most basic, a Note has a Title Field and a Body Field.
-* Notes should be extensible, so that they can be used in a variety of ways. 
+* Notes should be extensible, so that they can be used in a variety of ways.
 * Each Note is part of a Collection.
 * Notes can be organized within a Collection using Tags.
 * Each User may have one or more Collections.
@@ -243,7 +243,7 @@ The Notenik data format is intended be easily read and edited by humans, using a
     The substance of the note
 
 
-By default, Notenik shows only four Fields for a Note: Title, Link, Tags and Body. However, this default may be altered by placing a file named 'template.txt' or 'template.md' within a Collection's folder. Such a file should be in the normal Notenik format, as depicted above, although the Field Labels specified need not have any accompanying data. When such a template file is found, the field names found in this file will be used as the fields to be displayed and maintained for that Collection. This file should be created using a text editor -- not using the Notenik app itself for this purpose.
+By default, Notenik shows only four Fields for a Note: Title, Link, Tags and Body. However, this default may be altered by placing a file named 'template.txt' or 'template.md' within a Collection's folder. Such a file should be in the normal Notenik format, as depicted above, although the Field Labels specified need not have any accompanying values. When such a template file is found, the field names found in this file will be used as the fields to be displayed and maintained for that Collection. This file should be created using a text editor -- not using the Notenik app itself for this purpose. The file extension used for the template file will be used as the file extension for Notes subsequently created within the Collection.
 
 <h2 id="standard-fields">Standard Fields</h2>
 
@@ -260,7 +260,7 @@ Each Note in a Collection must have a unique Title. If a Title is not specified 
 
 Tags may be used to group related notes into categories. One or more tags may be associated with each note, and each tag may contain one or more sub-tags. A period or a slash may be used to separate one level of a tag from the next level, with the period being preferred. A comma or a semi-colon may be used to separate one tag from another, with the comma being preferred.
 
-The "Favorites" tag may be used to identify favored notes within a collection. The "Startup" tag may be used to identify notes whose links you wish to have opened by an application when it first starts.
+The "Favorites" tag may be used to identify favored notes within a collection, and these notes will appear on the Favorites Report. The "Startup" tag may be used to identify notes whose links you wish to have opened by the application when it first starts.
 
 <h3 id="link">Link</h3>
 
@@ -352,6 +352,10 @@ In fact, all of this and more can be accomplished through the use of the [PSText
 
 <h2 id="notenik-app">Notenik App</h2>
 
+
+The Notenik App looks like this.
+
+![Notenik Screenshot](http://www.powersurgepub.com/screenshots/notenik.png "Notenik Screenshot")
 
 The Notenik application can perform the following functions.
 
@@ -583,7 +587,7 @@ The Notenik General preferences contain a number of options for modifying the pr
 
 Notenik is free and open source software.
 
-Notenik Software, Specifications and Documentation are all Copyright 2013 - 2016 by [Herb Bowie](http://www.herbbowie.com/).
+Notenik Software, Specifications and Documentation are all Copyright 2009 - 2016 by [Herb Bowie](http://www.herbbowie.com/).
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use Notenik except in compliance with the License. You may obtain a copy of the License at [www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0). Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
@@ -607,18 +611,18 @@ Note that you may receive various warnings that the software is written in Java 
 
 If you see a message saying you need Java, then you can visit [Java.com](http://www.java.com) to download a recent version for most operating systems.
 
-* [Notenik Mac App](http://www.powersurgepub.com/downloads/notenik.dmg)
+* [Notenik Mac App](http://www.notenik.net/notenik.dmg)
 * [PowerSurge Publishing Omni Pack](http://www.powersurgepub.com/downloads/pspub-omni-pack.zip)
 * [Markdown Syntax](https://daringfireball.net/projects/markdown/syntax)
 
 
-[javacom]:    http://www.java.com
-[javanet]:    http://www.java.net
+[javacom]:      http://www.java.com
+[javanet]:      http://www.java.net
 [netbeans]:		https://netbeans.org
-[pspub]:      http://www.powersurgepub.com/
-[downloads]:  http://www.powersurgepub.com/downloads.html
+[pspub]:        http://www.powersurgepub.com/
+[downloads]:    http://www.powersurgepub.com/downloads.html
 [osd]:		    http://opensource.org/osd
-[gnu]:        http://www.gnu.org/licenses/
+[gnu]:          http://www.gnu.org/licenses/
 [apache]:	    http://www.apache.org/licenses/LICENSE-2.0.html
 [markdown]:		http://daringfireball.net/projects/markdown/
 [multimarkdown]:  http://fletcher.github.com/peg-multimarkdown/

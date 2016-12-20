@@ -317,9 +317,9 @@ public class NotenikMainFrame
     aboutWindow = new AboutWindow(
       false,   // loadFromDisk, 
       true,    // jxlUsed,
-      false,   // pegdownUsed,
-      false,   // xerces used
-      false,   // saxon used
+      true,    // pegdownUsed,
+      true,    // xerces used
+      true,    // saxon used
       "2009"); // copyRightYearFrom
         
 
