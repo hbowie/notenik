@@ -3,8 +3,34 @@
 <h1 id="notenik">Notenik</h1>
 
 
-Version: 2.40, released 20 Dec 2016 <[details](http://www.powersurgepub.com/products/notenik/versions.html)>
+Version: 2.50, released 04 Feb 2017 <[details](http://www.powersurgepub.com/products/notenik/versions.html)>
 
+<h2 id="introduction">Introduction</h2>
+
+
+Notenik is a system for recording, collecting and referencing notes.
+
+Notenik is really three things:
+
+1. A data format;
+2. An application that enables users to create, organize and access notes in this format;
+3. A set of related tools that can do things with notes formatted following Notenik conventions.
+
+<h2 id="principles">Principles</h2>
+
+
+The Notenik design is based on the following principles.
+
+* A Note is something you record using a mixture of letters, numbers and punctuation.
+* A Note may contain one or more Fields, each identified by its own Label.
+* At its most basic, a Note has a Title Field and a Body Field.
+* Notes should be extensible, so that they can be used in a variety of ways.
+* Each Note is part of a Collection.
+* Notes can be organized within a Collection using Tags.
+* Each User may have one or more Collections.
+* Collections of Notes should be open, easily accessible, and portable: they should be accessible using a variety of tools, on a variety of platforms, with the ability to easily sync them across devices.
+
+If this set of principles sounds appealing to you, then Notenik may be just what you've been looking for.
 
 <h2 id="table-of-contents">Table of Contents</h2>
 
@@ -145,32 +171,6 @@ Version: 2.40, released 20 Dec 2016 <[details](http://www.powersurgepub.com/prod
 
 
 
-<h2 id="introduction">Introduction</h2>
-
-
-Notenik is a system for recording, collecting and referencing notes.
-
-Notenik is really three things:
-
-1. A data format;
-2. An application that enables users to create, organize and access notes in this format;
-3. A set of related tools that can do things with notes formatted following Notenik conventions.
-
-<h2 id="principles">Principles</h2>
-
-
-The Notenik design is based on the following principles.
-
-* A Note is something you record using a mixture of letters, numbers and punctuation.
-* A Note may contain one or more Fields, each identified by its own Label.
-* At its most basic, a Note has a Title Field and a Body Field.
-* Notes should be extensible, so that they can be used in a variety of ways.
-* Each Note is part of a Collection.
-* Notes can be organized within a Collection using Tags.
-* Each User may have one or more Collections.
-* Collections of Notes should be open, easily accessible, and portable: they should be accessible using a variety of tools, on a variety of platforms, with the ability to easily sync them across devices.
-
-If this set of principles sounds appealing to you, then Notenik may be just what you've been looking for.
 
 <h2 id="data-format">Data Format</h2>
 
@@ -483,6 +483,29 @@ Similar to tab-delimited, but the Title and link are concatenated into a single 
 Your Notes will be represented in an XML format with each field represented as a separate tag.
 
 Note that, for XML formats, an exported file may contain invalid characters if those are present in your Notes.
+
+<h4 id="import-mac-app-info">Import Mac App Info</h4>
+
+
+When running on a Mac, if you choose this option, and then select your Applications folder, Notenik will import one Note for each application found in the folder. If duplicates are found then the existing notes will be updated rather than adding new notes. You will get the best results by first specifying a 'template.txt' file for the Collection in the following format.
+
+	Title:  The unique title for this note
+
+	Tags:   One or more tags, separated by commas
+
+	Link:   http://anyurl.com
+
+	Date:   2017-01-22
+
+	Seq:    Rev Letter or Version Number
+
+	Minimum System Version:
+
+	Body:
+ 
+	The body of the note
+
+After the import, you can use the Tags field to organize the applications in any way you like, and clicking on the Link field will launch the application.
 
 <h3 id="publish-your-notes">Publish Your Notes</h3>
 

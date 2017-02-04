@@ -28,6 +28,7 @@ package com.powersurgepub.notenik;
   import com.powersurgepub.psdatalib.script.*;
   import com.powersurgepub.psdatalib.tabdelim.*;
   import com.powersurgepub.psdatalib.textmerge.*;
+  import com.powersurgepub.psdatalib.textmerge.input.*;
   import com.powersurgepub.psdatalib.txbio.*;
   import com.powersurgepub.pspub.*;
   import com.powersurgepub.pstextio.*;
@@ -66,7 +67,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "2.40";
+  public static final String PROGRAM_VERSION = "2.50";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -121,6 +122,8 @@ public class NotenikMainFrame
       = new SimpleDateFormat ("EEEE MMMM d, yyyy");
   private DateFormat  backupDateFormatter
       = new SimpleDateFormat ("yyyy-MM-dd-HH-mm");
+  private    DateFormat       dateFormatter
+    = new SimpleDateFormat ("yyyy-MM-dd");
 
   private             UserPrefs           userPrefs;
   private             GeneralPrefs        generalPrefs;
@@ -470,7 +473,7 @@ public class NotenikMainFrame
   
    @param note The newNote to be saved. 
   */
-  protected void saveNote(Note note) {
+  protected boolean saveNote(Note note) {
     try {
       noteIO.save(note, true);
       if (folderSyncPrefs.getSync()) {
@@ -480,8 +483,10 @@ public class NotenikMainFrame
             note);
         note.setSynced(true);
       }
+      return true;
     } catch (IOException e) {
       ioException(e);
+      return false;
     }
   }
   
@@ -2101,6 +2106,183 @@ public int checkTags (String find, String replace) {
     firstNote();
   }
   
+  private void importMacAppInfo() {
+    
+    boolean modOK = modIfChanged();
+
+		if (modOK) {
+      fileChooser.setDialogTitle("Import Info about Mac Applications");
+      File top = new File ("/");
+      fileChooser.setCurrentDirectory (top);
+      fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+      File selectedFile = fileChooser.showOpenDialog(this);
+      if (selectedFile != null) {
+        TextMergeInputMacApps macApps = new TextMergeInputMacApps();
+        RecordDefinition recDef = noteList.getRecDef();
+        File[] filesInArray = selectedFile.listFiles();
+        ArrayList<File> files = new ArrayList<File>();
+        for (File fileInArray:filesInArray) {
+          files.add(fileInArray);
+        }
+        int fileIndex = 0;
+        while (fileIndex < files.size()) {
+          File file = files.get(fileIndex);
+          if (macApps.isInterestedIn(file)) {
+            TextMergeMacAppReader appReader = new TextMergeMacAppReader(file);
+            appReader.retrieveMacAppInfo();
+            String appName = appReader.getAppName();
+            String fileLink = appReader.getFileLink();
+            String tags = appReader.getTags();
+            String lastModDate = appReader.getLastModDate();
+            String version = appReader.getVersion();
+            String minSysVersion = appReader.getMinSysVersion();
+            String copyright = appReader.getCopyright();
+            addOrUpdateAppInfo(file, appName, fileLink, tags, lastModDate, 
+                version, minSysVersion, copyright);
+          } // end if this seems to be a genuine Mac app
+          else
+          if (file.isDirectory()
+              && (! file.isHidden())
+              && (file.canRead())) {
+            File[] moreFiles = file.listFiles();
+            for (File nestedFile:moreFiles) {
+              files.add(nestedFile);
+            }
+          } // end if a sub-directory
+          else
+          if (file.getName().endsWith(".jar")) {
+            FileName fileName = new FileName(file);
+            Date lastMod = new Date (file.lastModified());
+            String lastModDate = dateFormatter.format (lastMod);
+            addOrUpdateAppInfo(file, fileName.getBase(), fileName.getURLString(),
+                "", lastModDate, "", "", "");
+          }
+          fileIndex++;
+        } // end for each file in the directory
+      } // end if user specified a valid directory
+      noteList.fireTableDataChanged();
+      firstNote();
+    }
+  }
+  
+  private void addOrUpdateAppInfo(
+      File file,
+      String appName,
+      String fileLink,
+      String tags,
+      String lastModDate,
+      String version,
+      String minSysVersion,
+      String copyright) {
+
+    RecordDefinition recDef = noteList.getRecDef();
+    Note appNote = new Note(noteList.getRecDef(), appName);
+    StringBuilder body = new StringBuilder();
+    int ix = noteList.find(appNote);
+    if (ix < 0) {
+      
+      if (fileLink != null && fileLink.length() > 0
+          && recDef.contains(NoteParms.LINK_FIELD_NAME)) {
+        appNote.setLink(fileLink);
+      }
+      
+      if (tags != null && tags.length() > 0
+          && recDef.contains(NoteParms.TAGS_FIELD_NAME)) {
+        appNote.setTags(tags);
+      }
+      
+      if (lastModDate != null && lastModDate.length() > 0
+          && recDef.contains(NoteParms.DATE_FIELD_NAME)) {
+        appNote.setDate(lastModDate);
+      } else {
+        body.append(
+            "Date Last Modified: " + 
+            lastModDate + "  "
+            + GlobalConstants.LINE_FEED_STRING);
+      }
+      
+      if (version != null && version.length() > 0) {
+        if (recDef.contains(NoteParms.SEQ_FIELD_NAME)) {
+          appNote.setSeq(version);
+        } else {
+          body.append(
+              "Version: " +
+              version + "  " +
+              GlobalConstants.LINE_FEED_STRING);
+        }
+      }
+      
+      if (minSysVersion != null && minSysVersion.length() > 0) {
+        if (recDef.contains(NoteParms.MIN_SYS_VERSION_FIELD_NAME)) {
+          appNote.setField(NoteParms.MIN_SYS_VERSION_FIELD_NAME, minSysVersion);
+        } else {
+          body.append(
+              "Minimum System Version: " +
+              minSysVersion + "  " +
+              GlobalConstants.LINE_FEED_STRING);
+        }
+      }
+
+      if (copyright != null && copyright.length() > 0) {
+        if (recDef.getColumnNumber(NoteParms.BODY_FIELD_NAME) >= 0) {
+          body.append("Copyright: " + copyright);
+          appNote.setBody(body.toString());
+        }
+      }
+
+      addImportedNote(appNote);
+
+    } else {
+      appNote = noteList.get(ix);
+      
+      if (fileLink != null && fileLink.length() > 0
+          && recDef.contains(NoteParms.LINK_FIELD_NAME)) {
+        appNote.setLink(fileLink);
+      }
+      
+      if (lastModDate != null && lastModDate.length() > 0
+          && recDef.contains(NoteParms.DATE_FIELD_NAME)) {
+        appNote.setDate(lastModDate);
+      } 
+      
+      if (version != null && version.length() > 0) {
+        if (recDef.contains(NoteParms.SEQ_FIELD_NAME)) {
+          appNote.setSeq(version);
+        } 
+      }
+      
+      if (minSysVersion != null && minSysVersion.length() > 0) {
+        if (recDef.contains(NoteParms.MIN_SYS_VERSION_FIELD_NAME)) {
+          appNote.setField(NoteParms.MIN_SYS_VERSION_FIELD_NAME, minSysVersion);
+        } 
+      }
+
+      if (copyright != null && copyright.length() > 0) {
+        if (recDef.getColumnNumber(NoteParms.BODY_FIELD_NAME) >= 0) {
+          body.append("Copyright: " + copyright);
+          appNote.setBody(body.toString());
+        }
+      }
+    } // end if app note already exists
+    
+  }
+  
+  private boolean addImportedNote(Note importNote) {
+    boolean added = false;
+    if ((! importNote.hasTitle()) 
+        || importNote.getTitle().length() == 0
+        || (! importNote.hasKey())) {
+      // do nothing
+    } else {
+      importNote.setLastModDateToday();
+      saveNote(importNote);
+      noteList.add (importNote);
+      noteList.fireTableDataChanged();
+      added = true;
+    }
+    return added;
+  }
+  
   private void ioException(IOException e) {
     Trouble.getShared().report("I/O Exception", "Trouble");
   }
@@ -3152,6 +3334,7 @@ public int checkTags (String find, String replace) {
     fileBackupMenuItem = new javax.swing.JMenuItem();
     jSeparator5 = new javax.swing.JSeparator();
     importMenu = new javax.swing.JMenu();
+    importMacAppInfo = new javax.swing.JMenuItem();
     importNotenikMenuItem = new javax.swing.JMenuItem();
     importTabDelimitedMenuItem = new javax.swing.JMenuItem();
     importXMLMenuItem = new javax.swing.JMenuItem();
@@ -3518,7 +3701,15 @@ public int checkTags (String find, String replace) {
 
     importMenu.setText("Import");
 
-    importNotenikMenuItem.setText("Notenik");
+    importMacAppInfo.setText("Mac App Info...");
+    importMacAppInfo.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        importMacAppInfoActionPerformed(evt);
+      }
+    });
+    importMenu.add(importMacAppInfo);
+
+    importNotenikMenuItem.setText("Notenik...");
     importNotenikMenuItem.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
         importNotenikMenuItemActionPerformed(evt);
@@ -3526,7 +3717,7 @@ public int checkTags (String find, String replace) {
     });
     importMenu.add(importNotenikMenuItem);
 
-    importTabDelimitedMenuItem.setText("Tab-Delimited");
+    importTabDelimitedMenuItem.setText("Tab-Delimited...");
     importTabDelimitedMenuItem.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
         importTabDelimitedMenuItemActionPerformed(evt);
@@ -3534,7 +3725,7 @@ public int checkTags (String find, String replace) {
     });
     importMenu.add(importTabDelimitedMenuItem);
 
-    importXMLMenuItem.setText("XML");
+    importXMLMenuItem.setText("XML...");
     importXMLMenuItem.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
         importXMLMenuItemActionPerformed(evt);
@@ -4083,6 +4274,10 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     }
   }//GEN-LAST:event_itemTabbedPaneStateChanged
 
+  private void importMacAppInfoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_importMacAppInfoActionPerformed
+    importMacAppInfo();
+  }//GEN-LAST:event_importMacAppInfoActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -4117,6 +4312,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenu htmlMenu;
   private javax.swing.JMenuItem htmlToClipboardMenuItem;
   private javax.swing.JMenuItem htmlToFile;
+  private javax.swing.JMenuItem importMacAppInfo;
   private javax.swing.JMenu importMenu;
   private javax.swing.JMenuItem importNotenikMenuItem;
   private javax.swing.JMenuItem importTabDelimitedMenuItem;

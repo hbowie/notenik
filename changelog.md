@@ -1,4 +1,11 @@
 
+## Version 2.50 (2017-02-04)
+
+1. **Added the ability to Import information about Mac Applications**
+
+    This new import function can be used to create a catalog of your applications. Use the Tags to categorize them any way you like. You can also launch each app directly from its Note in Notenik.
+
+
 ## Version 2.40 (2016-12-20)
 
 1. **Refinements to the Reports Feature**
