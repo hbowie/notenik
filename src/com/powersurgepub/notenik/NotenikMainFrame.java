@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 - 2016 Herb Bowie
+ * Copyright 2009 - 2017 Herb Bowie
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "2.50";
+  public static final String PROGRAM_VERSION = "2.60";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -378,7 +378,7 @@ public class NotenikMainFrame
         if (lastFileSpec != null) {
           lastTitle = lastFileSpec.getLastTitle();
         }
-        openFile (lastFolder, lastTitle);
+        openFile (lastFolder, lastTitle, true);
         if (generalPrefs.getFavoritesPrefs().isOpenStartup()) {
           launchStartupURLs();
         }
@@ -389,7 +389,7 @@ public class NotenikMainFrame
       File defaultDataFolder = Home.getShared().getProgramDefaultDataFolder();
       Home.getShared().ensureProgramDefaultDataFolder();
       if (defaultDataFolder.exists()) {
-        openFile (defaultDataFolder, "");
+        openFile (defaultDataFolder, "", true);
         if (noteList.size() == 0) {
           addFirstNote();
         }
@@ -1540,7 +1540,7 @@ public int checkTags (String find, String replace) {
                   onto the application icon.
    */
   public void handleOpenFile (File inFile) {
-    openFile (inFile, "");
+    openFile (inFile, "", true);
   }
 
   /**
@@ -1576,9 +1576,22 @@ public int checkTags (String find, String replace) {
     saveFile();
     NotePositioned savePosition = position;
     if (FileUtils.isGoodInputDirectory(noteFile)) {
-      openFile (noteFile, "");
+      openFile (noteFile, "", true);
       position = savePosition;
       positionAndDisplay();
+    }
+  }
+  
+  private void reloadTaggedOnly() {
+    boolean ok = modIfChanged();
+    if (ok) {
+      saveFile();
+      NotePositioned savePosition = position;
+      if (FileUtils.isGoodInputDirectory(noteFile)) {
+        openFile (noteFile, "", false);
+        position = savePosition;
+        positionAndDisplay();
+      }
     }
   }
 
@@ -1597,7 +1610,7 @@ public int checkTags (String find, String replace) {
     selectedFile = fileChooser.showOpenDialog(this);
     if (selectedFile != null) {
       if (FileUtils.isGoodInputDirectory(selectedFile)) {
-        openFile (selectedFile, "");
+        openFile (selectedFile, "", true);
       } else {
         trouble.report ("Trouble opening file " + selectedFile.toString(),
             "File Open Error");
@@ -1605,7 +1618,10 @@ public int checkTags (String find, String replace) {
     } // end if user approved a file/folder choice
   } // end method openFile
 
-  private void openFile (File fileToOpen, String titleToDisplay) {
+  private void openFile (
+      File fileToOpen, 
+      String titleToDisplay, 
+      boolean loadUnTagged) {
     
     closeFile();
     
@@ -1621,7 +1637,7 @@ public int checkTags (String find, String replace) {
     
     setNoteFile (fileToOpen);
     try {
-      noteIO.load(noteList);
+      noteIO.load(noteList, loadUnTagged);
       if (folderSyncPrefs.getSync()) {
         syncWithFolder();
       }
@@ -1759,7 +1775,7 @@ public int checkTags (String find, String replace) {
     }
     
     if (purged > 0) {
-      openFile (noteFile, "");   
+      openFile (noteFile, "", true);   
       position.setNavigatorToList (collectionTabbedPane.getSelectedIndex() == 0);
       position = noteList.first (position);
       positionAndDisplay();
@@ -2064,7 +2080,7 @@ public int checkTags (String find, String replace) {
           NoteParms.DEFINED_TYPE, 
           noteIO.getRecDef());
       try {
-        importer.load(noteList);
+        importer.load(noteList, true);
       } catch (IOException e) {
         ioException(e);
       }
@@ -2106,6 +2122,9 @@ public int checkTags (String find, String replace) {
     firstNote();
   }
   
+  /**
+   Import info about Mac applications. 
+  */
   private void importMacAppInfo() {
     
     boolean modOK = modIfChanged();
@@ -2138,7 +2157,7 @@ public int checkTags (String find, String replace) {
             String minSysVersion = appReader.getMinSysVersion();
             String copyright = appReader.getCopyright();
             addOrUpdateAppInfo(file, appName, fileLink, tags, lastModDate, 
-                version, minSysVersion, copyright);
+                version, minSysVersion, copyright, true);
           } // end if this seems to be a genuine Mac app
           else
           if (file.isDirectory()
@@ -2155,7 +2174,7 @@ public int checkTags (String find, String replace) {
             Date lastMod = new Date (file.lastModified());
             String lastModDate = dateFormatter.format (lastMod);
             addOrUpdateAppInfo(file, fileName.getBase(), fileName.getURLString(),
-                "", lastModDate, "", "", "");
+                "", lastModDate, "", "", "", false);
           }
           fileIndex++;
         } // end for each file in the directory
@@ -2173,14 +2192,15 @@ public int checkTags (String find, String replace) {
       String lastModDate,
       String version,
       String minSysVersion,
-      String copyright) {
+      String copyright,
+      boolean macApp) {
 
     RecordDefinition recDef = noteList.getRecDef();
     Note appNote = new Note(noteList.getRecDef(), appName);
     StringBuilder body = new StringBuilder();
     int ix = noteList.find(appNote);
     if (ix < 0) {
-      
+      // Not found -- add it
       if (fileLink != null && fileLink.length() > 0
           && recDef.contains(NoteParms.LINK_FIELD_NAME)) {
         appNote.setLink(fileLink);
@@ -2232,37 +2252,42 @@ public int checkTags (String find, String replace) {
 
       addImportedNote(appNote);
 
-    } else {
+    } 
+    else {
+      // Found in table -- update where it makes sense
       appNote = noteList.get(ix);
-      
-      if (fileLink != null && fileLink.length() > 0
-          && recDef.contains(NoteParms.LINK_FIELD_NAME)) {
-        appNote.setLink(fileLink);
-      }
-      
-      if (lastModDate != null && lastModDate.length() > 0
-          && recDef.contains(NoteParms.DATE_FIELD_NAME)) {
-        appNote.setDate(lastModDate);
-      } 
-      
-      if (version != null && version.length() > 0) {
-        if (recDef.contains(NoteParms.SEQ_FIELD_NAME)) {
-          appNote.setSeq(version);
-        } 
-      }
-      
-      if (minSysVersion != null && minSysVersion.length() > 0) {
-        if (recDef.contains(NoteParms.MIN_SYS_VERSION_FIELD_NAME)) {
-          appNote.setField(NoteParms.MIN_SYS_VERSION_FIELD_NAME, minSysVersion);
-        } 
-      }
-
-      if (copyright != null && copyright.length() > 0) {
-        if (recDef.getColumnNumber(NoteParms.BODY_FIELD_NAME) >= 0) {
-          body.append("Copyright: " + copyright);
-          appNote.setBody(body.toString());
+      if (appNote.isLinkToMacApp() && (! macApp)) {
+        // Don't replace a real app entry with a jar file
+      } else {
+        if (fileLink != null && fileLink.length() > 0
+            && recDef.contains(NoteParms.LINK_FIELD_NAME)) {
+          appNote.setLink(fileLink);
         }
-      }
+
+        if (lastModDate != null && lastModDate.length() > 0
+            && recDef.contains(NoteParms.DATE_FIELD_NAME)) {
+          appNote.setDate(lastModDate);
+        } 
+
+        if (version != null && version.length() > 0) {
+          if (recDef.contains(NoteParms.SEQ_FIELD_NAME)) {
+            appNote.setSeq(version);
+          } 
+        }
+
+        if (minSysVersion != null && minSysVersion.length() > 0) {
+          if (recDef.contains(NoteParms.MIN_SYS_VERSION_FIELD_NAME)) {
+            appNote.setField(NoteParms.MIN_SYS_VERSION_FIELD_NAME, minSysVersion);
+          } 
+        }
+
+        if (copyright != null && copyright.length() > 0) {
+          if (recDef.getColumnNumber(NoteParms.BODY_FIELD_NAME) >= 0) {
+            body.append("Copyright: " + copyright);
+            appNote.setBody(body.toString());
+          }
+        }
+      } // end if not replacing a real app with a jar file
     } // end if app note already exists
     
   }
@@ -3327,6 +3352,7 @@ public int checkTags (String find, String replace) {
     saveAllMenuItem = new javax.swing.JMenuItem();
     fileSaveAsMenuItem = new javax.swing.JMenuItem();
     reloadMenuItem = new javax.swing.JMenuItem();
+    reloadTaggedMenuItem = new javax.swing.JMenuItem();
     jSeparator1 = new javax.swing.JSeparator();
     publishWindowMenuItem = new javax.swing.JMenuItem();
     publishNowMenuItem = new javax.swing.JMenuItem();
@@ -3669,6 +3695,14 @@ public int checkTags (String find, String replace) {
       }
     });
     fileMenu.add(reloadMenuItem);
+
+    reloadTaggedMenuItem.setText("Reload w/o Untagged");
+    reloadTaggedMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        reloadTaggedMenuItemActionPerformed(evt);
+      }
+    });
+    fileMenu.add(reloadTaggedMenuItem);
     fileMenu.add(jSeparator1);
 
     publishWindowMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -4278,6 +4312,10 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     importMacAppInfo();
   }//GEN-LAST:event_importMacAppInfoActionPerformed
 
+  private void reloadTaggedMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_reloadTaggedMenuItemActionPerformed
+    reloadTaggedOnly();
+  }//GEN-LAST:event_reloadTaggedMenuItemActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -4350,6 +4388,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem publishWindowMenuItem;
   private javax.swing.JMenuItem purgeMenuItem;
   private javax.swing.JMenuItem reloadMenuItem;
+  private javax.swing.JMenuItem reloadTaggedMenuItem;
   private javax.swing.JMenuItem replaceMenuItem;
   private javax.swing.JMenu reportsMenu;
   private javax.swing.JMenuItem saveAllMenuItem;
