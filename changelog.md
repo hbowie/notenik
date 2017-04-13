@@ -1,4 +1,18 @@
 
+## Version 2.70 (2017-04-06)
+
+1. **Added ability to sort by the Seq field**
+
+    Added a Sort menu that allows the user to sort the list of notes by Seq first, and then by Title.
+
+
+## Version 2.60 (2017-02-13)
+
+1. **Added File Menu Command to Reload Without Untagged Notes**
+
+    This new File Menu item allows the user to reload the current collection, but suppressing any notes that are completely without tags.
+
+
 ## Version 2.50 (2017-02-04)
 
 1. **Added the ability to Import information about Mac Applications**

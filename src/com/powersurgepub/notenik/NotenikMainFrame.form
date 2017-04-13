@@ -41,6 +41,14 @@
                 <Property name="text" type="java.lang.String" value="Open Recent"/>
               </Properties>
             </Menu>
+            <MenuItem class="javax.swing.JMenuItem" name="openHelpNotesMenuItem">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="Open Help Notes"/>
+              </Properties>
+              <Events>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="openHelpNotesMenuItemActionPerformed"/>
+              </Events>
+            </MenuItem>
             <MenuItem class="javax.swing.JMenuItem" name="fileSaveMenuItem">
               <Properties>
                 <Property name="accelerator" type="javax.swing.KeyStroke" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
@@ -298,6 +306,11 @@
             </MenuItem>
           </SubComponents>
         </Menu>
+        <Menu class="javax.swing.JMenu" name="sortMenu">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="Sort"/>
+          </Properties>
+        </Menu>
         <Menu class="javax.swing.JMenu" name="noteMenu">
           <Properties>
             <Property name="text" type="java.lang.String" value="Note"/>
@@ -380,6 +393,14 @@
               </Properties>
               <Events>
                 <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="closeNoteMenuItemActionPerformed"/>
+              </Events>
+            </MenuItem>
+            <MenuItem class="javax.swing.JMenuItem" name="incrementSeqMenuItem">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="Increment Seq"/>
+              </Properties>
+              <Events>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="incrementSeqMenuItemActionPerformed"/>
               </Events>
             </MenuItem>
             <MenuItem class="javax.swing.JPopupMenu$Separator" name="jSeparator11">

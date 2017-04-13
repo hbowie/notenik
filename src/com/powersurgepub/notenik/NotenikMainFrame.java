@@ -67,7 +67,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "2.60";
+  public static final String PROGRAM_VERSION = "2.70";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -146,7 +146,9 @@ public class NotenikMainFrame
   private             TagTreeCellRenderer treeCellRenderer;
   private             DataWidget          linkText = null;
   private             DataWidget          statusWidget = null;
+  private             DataWidget          seqWidget = null;
   private             boolean             statusIncluded      = false;
+  private             boolean             seqIncluded         = false;
 
   private             NotePositioned      position = null;
   private             boolean             modified = false;
@@ -221,6 +223,10 @@ public class NotenikMainFrame
   private             DisplayTab          displayTab;
   public static final int DISPLAY_TAB_INDEX = 0;
   public static final int CONTENT_TAB_INDEX = 1;
+  
+  private             NoteSortParm         noteSortParm = new NoteSortParm();
+  
+  private             String oldSeq = "";
 
   /** Creates new form NotenikMainFrame */
   public NotenikMainFrame() {
@@ -241,6 +247,8 @@ public class NotenikMainFrame
     home = Home.getShared ();
     programVersion = ProgramVersion.getShared ();
     initComponents();
+    
+    noteSortParm.populateMenu(sortMenu);
     
     // textMerge = TextMergeHarness.getShared(noteList);
     reports = new Reports(reportsMenu);
@@ -427,15 +435,38 @@ public class NotenikMainFrame
       selectedTags = tags.getTagsAsString();
     }
     
+    DataValueSeq newSeq = null;
+    if (noteSortParm.getParm() == NoteSortParm.SORT_BY_SEQ_AND_TITLE
+        && position != null
+        && position.getNote() != null
+        && noteList.atEnd(position)) {
+      newSeq = new DataValueSeq(position.getNote().getSeq());
+      newSeq.increment(false);
+    }
+    
     boolean modOK = modIfChanged();
 
     if (modOK) {
       position = new NotePositioned(noteIO.getRecDef());
       position.setIndex (noteList.size());
       fileName = "";
+      boolean seqSet = false;
+      if (oldSeq != null && oldSeq.length() > 0) {
+        position.getNote().setSeq(oldSeq);
+        seqSet = true;
+      }
+      else
+      if (newSeq != null) {
+        position.getNote().setSeq(newSeq.toString());
+        seqSet = true;
+      }
       displayNote();
       tagsTextSelector.setText (selectedTags);
+      if (seqSet) {
+        seqWidget.setText(position.getNote().getSeq());
+      }
       itemTabbedPane.setSelectedIndex(CONTENT_TAB_INDEX);
+      oldSeq = "";
     }
   }
   
@@ -621,7 +652,7 @@ public class NotenikMainFrame
     noFindInProgress();
   }
 
-public int checkTags (String find, String replace) {
+  public int checkTags (String find, String replace) {
     int mods = 0;
     Note next;
     Tags tags;
@@ -629,28 +660,28 @@ public int checkTags (String find, String replace) {
     for (int i = 0; i < noteList.size(); i++) {
       next = noteList.get(i);
       tags = next.getTags();
-      boolean modified = false;
+      boolean tagsModified = false;
       if (find.equals("")) {
         tags.merge (replace);
-        modified = true;
+        tagsModified = true;
       } else {
         TagsIterator iterator = new TagsIterator (tags);
-        while (iterator.hasNextTag() && (! modified)) {
+        while (iterator.hasNextTag() && (! tagsModified)) {
           tag = iterator.nextTag();
           if (tag.equalsIgnoreCase (find)) {
             iterator.removeTag();
             if (replace.length() > 0) {
               tags.merge (replace);
             }
-            modified = true;
+            tagsModified = true;
           }
         } // end while this item has more categories
       } // end if we the find category is not blank
-      if (modified) {
+      if (tagsModified) {
         mods++;
         saveNote(next);
         // setUnsavedChanges (true);
-      } // end if modified
+      } // end if tags modified
     } // end of  items
     return mods;
   } 
@@ -1296,9 +1327,10 @@ public int checkTags (String find, String replace) {
   public boolean modIfChanged () {
     
     boolean modOK = true;
-
+    
     Note note = position.getNote();
     
+    // Check each field for changes
     for (int i = 0; i < noteIO.getNumberOfFields(); i++) {
       DataFieldDefinition fieldDef = noteIO.getRecDef().getDef(i);
       String fieldName = fieldDef.getProperName();
@@ -1334,6 +1366,21 @@ public int checkTags (String find, String replace) {
           modified = true;
         }
       } 
+      else
+      if (fieldName.equalsIgnoreCase(NoteParms.SEQ_FIELD_NAME)) {
+        if (! widget.getText().equals (note.getSeq())) {
+          note.setSeq (widget.getText());
+          modified = true;
+        }
+      } 
+      else
+      if (fieldName.equalsIgnoreCase(NoteParms.STATUS_FIELD_NAME)) {
+        ItemStatus statusValue = new ItemStatus(widget.getText());
+        if (note.getStatus().compareTo(statusValue) != 0) {
+          note.setStatus (widget.getText());
+          modified = true;
+        }
+      } 
       else {
         DataField nextField = note.getField(i);
         if (! widget.getText().equals(nextField.getData())) {
@@ -1343,7 +1390,10 @@ public int checkTags (String find, String replace) {
       } // end if generic field
     } // end for each field
     
+    // If entry has been modified, then let's update if we can
     if (modified) {
+      
+      // Got to have a title
       String newFileName = note.getFileName();
       if ((! note.hasTitle()) || note.getTitle().length() == 0) {
         Object[] options = {"OK, let me fix it", "Cancel and discard the Note"};
@@ -1358,6 +1408,8 @@ public int checkTags (String find, String replace) {
         modOK = (response == 1);
       } 
       else 
+      // If we changed the title, then check to see if we have another 
+      // Note by the same name
       if ((! newFileName.equals(fileName))
           && noteIO.exists(newFileName)
           && (! newFileName.equalsIgnoreCase(note.getDiskLocationBase()))) {
@@ -1370,7 +1422,7 @@ public int checkTags (String find, String replace) {
         note.setLastModDateToday();
         saveNoteAndDeleteOnRename(note);
         if (position.isNewNote()) {
-          if (note.hasKey()) {
+          if (note.hasUniqueKey()) {
             addNoteToList ();
           } // end if we have newNote worth adding
         } else {
@@ -1378,6 +1430,7 @@ public int checkTags (String find, String replace) {
         }
         noteList.fireTableDataChanged();
       }
+      oldSeq = "";
     } // end if modified
     
     return modOK;
@@ -1617,6 +1670,20 @@ public int checkTags (String find, String replace) {
       }
     } // end if user approved a file/folder choice
   } // end method openFile
+  
+  /**
+   Open the Help Notes for Notenik. 
+  */
+  private void openHelpNotes() {
+
+    File appFolder = Home.getShared().getAppFolder();
+    File helpFolder = new File (appFolder, "help");
+    File helpNotes = new File (helpFolder, "notenik-intro");
+    openFile (helpNotes, "Help Notes", true);
+    noteSortParm.setParm(NoteSortParm.SORT_BY_SEQ_AND_TITLE);
+    firstNote();
+    
+  }
 
   private void openFile (
       File fileToOpen, 
@@ -1802,6 +1869,41 @@ public int checkTags (String find, String replace) {
   }
   
   /**
+   Let's bump up the seq field for this Note, and all following
+   notes until we stop creating duplicate seq fields. 
+  */
+  private void incrementSeq() {
+
+    if (noteSortParm.getParm() != NoteSortParm.SORT_BY_SEQ_AND_TITLE) {
+      JOptionPane.showMessageDialog(this,
+          "First Sort by Seq + Title before Incrementing a Seq Value",
+          "Sort Error",
+          JOptionPane.WARNING_MESSAGE,
+          Home.getShared().getIcon());
+    } 
+    else
+    if (position == null
+        || position.getNote() == null
+        || position.getIndex() < 0) {
+      JOptionPane.showMessageDialog(this,
+          "First select a Note before Incrementing a Seq Value",
+          "Selection Error",
+          JOptionPane.WARNING_MESSAGE,
+          Home.getShared().getIcon());
+    } else {
+      oldSeq = position.getNote().getSeq();
+      String newSeq = noteList.incrementSeq(
+          position, 
+          noteIO, 
+          folderSyncPrefs.getFolderSyncPrefsData());
+      if (seqWidget != null) {
+        seqWidget.setText(newSeq);
+      }
+      
+    }
+  }
+  
+  /**
    Build the user interface to view and update one Note. 
   */
   private void buildNoteTabs() {
@@ -1810,6 +1912,8 @@ public int checkTags (String find, String replace) {
     tagsTextSelector = null;
     statusWidget = null;
     statusIncluded = false;
+    seqWidget = null;
+    seqIncluded = false;
     JPanel notePanel = new JPanel();
     notePanel.setLayout(new GridBagLayout());
     widgets = new ArrayList();
@@ -1841,6 +1945,10 @@ public int checkTags (String find, String replace) {
         case (DataFieldDefinition.STATUS_TYPE):
           statusWidget = widgetWithLabel.getWidget();
           statusIncluded = true;
+          break;
+        case (DataFieldDefinition.SEQ_TYPE):
+          seqWidget = widgetWithLabel.getWidget();
+          seqIncluded = true;
           break;
       }
       widgets.add(widgetWithLabel.getWidget());
@@ -1895,6 +2003,8 @@ public int checkTags (String find, String replace) {
     
     // initRecDef();
     noteList = new NoteList(noteIO.getRecDef());
+    noteSortParm.resetToDefaults();
+    noteList.setSortParm(noteSortParm);
     position = new NotePositioned(noteIO.getRecDef());
     noteTable.setModel(noteList);
     noteTree.setModel (noteList.getTagsModel().getModel());
@@ -2296,7 +2406,7 @@ public int checkTags (String find, String replace) {
     boolean added = false;
     if ((! importNote.hasTitle()) 
         || importNote.getTitle().length() == 0
-        || (! importNote.hasKey())) {
+        || (! importNote.hasUniqueKey())) {
       // do nothing
     } else {
       importNote.setLastModDateToday();
@@ -2346,7 +2456,7 @@ public int checkTags (String find, String replace) {
     int numberSaved = 0;
     int numberDeleted = 0;
     for (int i = 0; i < noteList.totalSize() && saveOK; i++) {
-      Note nextNote = noteList.getUnfiltered(i);
+      Note nextNote = noteList.get(i);
       String oldDiskLocation = nextNote.getDiskLocation();
       try {
         noteIO.save(nextNote, true);
@@ -3197,7 +3307,7 @@ public int checkTags (String find, String replace) {
       newNote = noteIO.getNote(reader);
       if (newNote == null 
           || (! newNote.hasTitle()) 
-          || (! newNote.hasKey())
+          || (! newNote.hasUniqueKey())
           || (newNote.getTitle().length() == 0)) {
         ok = false;
       }
@@ -3348,6 +3458,7 @@ public int checkTags (String find, String replace) {
     generateTemplateMenuItem = new javax.swing.JMenuItem();
     openMenuItem = new javax.swing.JMenuItem();
     openRecentMenu = new javax.swing.JMenu();
+    openHelpNotesMenuItem = new javax.swing.JMenuItem();
     fileSaveMenuItem = new javax.swing.JMenuItem();
     saveAllMenuItem = new javax.swing.JMenuItem();
     fileSaveAsMenuItem = new javax.swing.JMenuItem();
@@ -3384,6 +3495,7 @@ public int checkTags (String find, String replace) {
     lowerCaseTagsMenuItem = new javax.swing.JMenuItem();
     jSeparator3 = new javax.swing.JSeparator();
     validateURLsMenuItem = new javax.swing.JMenuItem();
+    sortMenu = new javax.swing.JMenu();
     noteMenu = new javax.swing.JMenu();
     newNoteMenuItem = new javax.swing.JMenuItem();
     deleteNoteMenuItem = new javax.swing.JMenuItem();
@@ -3394,6 +3506,7 @@ public int checkTags (String find, String replace) {
     openNoteMenuItem = new javax.swing.JMenuItem();
     getFileInfoMenuItem = new javax.swing.JMenuItem();
     closeNoteMenuItem = new javax.swing.JMenuItem();
+    incrementSeqMenuItem = new javax.swing.JMenuItem();
     jSeparator11 = new javax.swing.JPopupMenu.Separator();
     copyNoteMenuItem = new javax.swing.JMenuItem();
     pasteNoteMenuItem = new javax.swing.JMenuItem();
@@ -3663,6 +3776,14 @@ public int checkTags (String find, String replace) {
     openRecentMenu.setText("Open Recent");
     fileMenu.add(openRecentMenu);
 
+    openHelpNotesMenuItem.setText("Open Help Notes");
+    openHelpNotesMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        openHelpNotesMenuItemActionPerformed(evt);
+      }
+    });
+    fileMenu.add(openHelpNotesMenuItem);
+
     fileSaveMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
     fileSaveMenuItem.setText("Save");
     fileSaveMenuItem.addActionListener(new java.awt.event.ActionListener() {
@@ -3895,6 +4016,9 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
 
   mainMenuBar.add(collectionMenu);
 
+  sortMenu.setText("Sort");
+  mainMenuBar.add(sortMenu);
+
   noteMenu.setText("Note");
 
   newNoteMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -3961,6 +4085,14 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
     }
   });
   noteMenu.add(closeNoteMenuItem);
+
+  incrementSeqMenuItem.setText("Increment Seq");
+  incrementSeqMenuItem.addActionListener(new java.awt.event.ActionListener() {
+    public void actionPerformed(java.awt.event.ActionEvent evt) {
+      incrementSeqMenuItemActionPerformed(evt);
+    }
+  });
+  noteMenu.add(incrementSeqMenuItem);
   noteMenu.add(jSeparator11);
 
   copyNoteMenuItem.setText("Copy Note");
@@ -4316,6 +4448,16 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     reloadTaggedOnly();
   }//GEN-LAST:event_reloadTaggedMenuItemActionPerformed
 
+  private void incrementSeqMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_incrementSeqMenuItemActionPerformed
+    if (seqIncluded) {
+      incrementSeq();
+    }
+  }//GEN-LAST:event_incrementSeqMenuItemActionPerformed
+
+  private void openHelpNotesMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openHelpNotesMenuItemActionPerformed
+    openHelpNotes();
+  }//GEN-LAST:event_openHelpNotesMenuItemActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -4355,6 +4497,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem importNotenikMenuItem;
   private javax.swing.JMenuItem importTabDelimitedMenuItem;
   private javax.swing.JMenuItem importXMLMenuItem;
+  private javax.swing.JMenuItem incrementSeqMenuItem;
   private javax.swing.JTabbedPane itemTabbedPane;
   private javax.swing.JSeparator jSeparator1;
   private javax.swing.JPopupMenu.Separator jSeparator10;
@@ -4379,6 +4522,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JTable noteTable;
   private javax.swing.JTree noteTree;
   private javax.swing.JButton okButton;
+  private javax.swing.JMenuItem openHelpNotesMenuItem;
   private javax.swing.JMenuItem openMenuItem;
   private javax.swing.JMenuItem openNoteMenuItem;
   private javax.swing.JMenu openRecentMenu;
@@ -4392,6 +4536,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem replaceMenuItem;
   private javax.swing.JMenu reportsMenu;
   private javax.swing.JMenuItem saveAllMenuItem;
+  private javax.swing.JMenu sortMenu;
   private javax.swing.JScrollPane tableScrollPane;
   private javax.swing.JMenuItem toolsLinkTweakerMenuItem;
   private javax.swing.JMenu toolsMenu;

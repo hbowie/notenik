@@ -124,41 +124,85 @@ public class DisplayTab
   
   public void displayBody(String body) {
     // Display Body, if there is any
+    // System.out.println("DisplayTab.displayBody");
     String bodyHTML = mdToHTML.markdownToHtml(body);
+    
+    // Let's try to honor the user's request for a type face and a type size
+    // Due to Swing limitations, we're using the ancient font tag
     if (body.length() > 0) {
+      // Let's start things out right
       startFont(0);
       int i = 0;
       while ( i < bodyHTML.length()) {
-        int j = bodyHTML.indexOf("<h", i);
-        if (j < 0) { j = bodyHTML.length(); }
+        // System.out.println("  characters at position " + String.valueOf(i)
+        //     + nextChars(bodyHTML, i, 20));
+        // Scan repeatedly for a tag that will override the font tag
+        // i is where we will start the next scan
+        // j is the start of the next apparent HTML tag
+        // k is the end of the starting tag
+        // l is the start of the ending tag
+        // m is the end of the ending tag
+        int j = bodyHTML.indexOf("<", i);
+        if (j < 0) { 
+          j = bodyHTML.length(); 
+        }
         if (j > i) {
           text.append(bodyHTML.substring(i, j));
           i = j+1;
         }
-        endFont();
-        if (j < bodyHTML.length()) {
+        if (i < bodyHTML.length()) {
           int k = bodyHTML.indexOf(">", j+2);
-          if (k > 0) {
-            int l = bodyHTML.indexOf("</h", k+1);
-            if (l > 0) {
-              int m = bodyHTML.indexOf(">", l+3);
-              if (m > 0) {
-                text.append(bodyHTML.substring(j, k+1));
-                startFontFace();
-                text.append(bodyHTML.substring(k+1, l));
-                endFont();
-                text.append(bodyHTML.substring(l, m+1));
-                startFont(0);
-                i = m + 1;
-              } // end if we found another complete heading
-            } // end if we found start of heading close
-          } // end if we found close for heading tag
-        } // end if we found the beginning of another heading tag
+          String disruptiveTag = "";
+          if (nextChars(bodyHTML, j + 1, 1).equalsIgnoreCase("h")) {
+            disruptiveTag = nextChars(bodyHTML, j + 1, 2);
+          }
+          if (nextChars(bodyHTML, j + 1, 3).equalsIgnoreCase("pre")) {
+            disruptiveTag = "pre";
+          }
+          if (disruptiveTag.length() > 0) {
+            endFont();
+            String endTag = "</" + disruptiveTag;
+            if (j < bodyHTML.length()) {
+              
+              if (k > 0) {
+                int l = bodyHTML.indexOf(endTag, k+1);
+                if (l > 0) {
+                  int m = bodyHTML.indexOf(">", l+3);
+                  if (m > 0) {
+                    text.append(bodyHTML.substring(j, k+1));
+                    if (! disruptiveTag.equalsIgnoreCase("pre")) {
+                      startFontFace();
+                    }
+                    text.append(bodyHTML.substring(k+1, l));
+                    if (! disruptiveTag.equalsIgnoreCase("pre")) {
+                      endFont();
+                    }
+                    text.append(bodyHTML.substring(l, m+1));
+                    startFont(0);
+                    i = m + 1;
+                  } // end if we found the end of the closing tag
+                } // end if we found start of heading close
+              } // end if we found close for heading tag
+            } // end if we found the beginning of another tag
+          } // end if we found the beginning of another disruptive tag
+          else {
+            text.append(bodyHTML.substring(j, k + 1));
+            i = k+1;
+          }
+        } // end if we have more text to scan
       } // end while scanning for headings
       // text.append(bodyHTML);
       // appendParagraph ("", 0, "", "", description);
       endFont();
     }
+  }
+  
+  private String nextChars(String str, int start, int length) {
+    int end = start + length;
+    if (end > str.length()) {
+      end = str.length();
+    }
+    return str.substring(start, end);
   }
   
   /**
@@ -326,7 +370,7 @@ public class DisplayTab
   /**
    Display the priority / rating if anything unusual. 
   
-   @param priority An intereger / priority in the range 1 - 5. 
+   @param priority An integer / priority in the range 1 - 5. 
    @param label    The display value. 
   */
   public void displayRating(int priority, String label) {
@@ -340,7 +384,6 @@ public class DisplayTab
   public void finishDisplay() {
     text.append ("</body>");
     text.append ("</html>");
-    // Logger.getShared().recordEvent(LogEvent.NORMAL, text.toString(), false);
     displayEditorPane.setText (text.toString());
     displayEditorPane.setCaretPosition(0);
   }
