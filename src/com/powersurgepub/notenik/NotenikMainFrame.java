@@ -57,6 +57,7 @@ public class NotenikMainFrame
     implements 
       ActionListener,
       AppToBackup,
+      DateWidgetOwner,
       DisplayWindow,
       TagsChangeAgent,
       FileSpecOpener,
@@ -146,8 +147,12 @@ public class NotenikMainFrame
   private             TagTreeCellRenderer treeCellRenderer;
   private             DataWidget          linkText = null;
   private             DataWidget          statusWidget = null;
+  private             DateWidget          dateWidget = null;
   private             DataWidget          seqWidget = null;
+  private             DataWidget          recursWidget = null;
   private             boolean             statusIncluded      = false;
+  private             boolean             dateIncluded        = false;
+  private             boolean             recursIncluded      = false;
   private             boolean             seqIncluded         = false;
 
   private             NotePositioned      position = null;
@@ -1141,6 +1146,48 @@ public class NotenikMainFrame
     }
   }
   
+  private void expandAllTags() {
+    TreeNode root = (TreeNode) noteTree.getModel().getRoot();
+    expandAll(noteTree, new TreePath(root));
+  }
+
+  private void expandAll(JTree tree, TreePath parent) {
+    TreeNode node = (TreeNode) parent.getLastPathComponent();
+    if (node.getChildCount() >= 0) {
+      for (Enumeration e = node.children(); e.hasMoreElements();) {
+        TreeNode n = (TreeNode) e.nextElement();
+        TreePath path = parent.pathByAddingChild(n);
+        expandAll(tree, path);
+      }
+    }
+    tree.expandPath(parent);
+    // tree.collapsePath(parent);
+  }
+  
+  private void collapseAllTags() {
+    TreeNode root = (TreeNode) noteTree.getModel().getRoot();
+    TreePath rootPath = new TreePath(root);
+    if (root.getChildCount() >= 0) {
+      for (Enumeration e = root.children(); e.hasMoreElements();) {
+        TreeNode n = (TreeNode) e.nextElement();
+        TreePath path = rootPath.pathByAddingChild(n);
+        collapseAll(noteTree, path);
+      }
+    }
+  }
+  
+  private void collapseAll(JTree tree, TreePath parent) {
+    TreeNode node = (TreeNode) parent.getLastPathComponent();
+    if (node.getChildCount() >= 0) {
+      for (Enumeration e = node.children(); e.hasMoreElements();) {
+        TreeNode n = (TreeNode) e.nextElement();
+        TreePath path = parent.pathByAddingChild(n);
+        collapseAll(tree, path);
+      }
+    }
+    tree.collapsePath(parent);
+  }
+  
   public void displayPrefsUpdated(DisplayPrefs displayPrefs) {
     if (position != null && displayTab != null) {
       buildDisplayTab();
@@ -1211,6 +1258,8 @@ public class NotenikMainFrame
         saveNoteAndDeleteOnRename(note);
       }
     }
+    
+    noteList.fireTableRowsUpdated(position.getIndex(), position.getIndex());
     
   }
   
@@ -1319,6 +1368,68 @@ public class NotenikMainFrame
     itemTabbedPane.setSelectedIndex (CONTENT_TAB_INDEX);
     okButton.setEnabled(true);
   }
+  
+  /**
+   To be called whenever the date is modified by DateWidget.
+   */
+  public void dateModified (String date) {
+    modified = true;
+  }
+  
+  /**
+   Apply the recurrence rule to the date.
+   
+   @param date Date that will be incremented. 
+   */
+  public String recur (String date) {
+    StringDate str = new StringDate();
+    str.set(date);
+    RecursValue recurs = new RecursValue(getRecurrenceRule());
+    return recurs.recur(str);
+  }
+  
+  /**
+   Apply the recurrence rule to the date.
+   
+   @param date Date that will be incremented. 
+   */
+  public String recur (StringDate date) {
+    RecursValue recurs = new RecursValue(getRecurrenceRule());
+    return recurs.recur(date);
+  }
+  
+  /**
+   Provide a text string describing the recurrence rule, that can
+   be used as a tool tip.
+   */
+  public String getRecurrenceRule() {
+    String recurs = "";
+    if (canRecur()) {
+      if (recursWidget != null) {
+        recurs = recursWidget.getText();
+      }
+      if (recurs.length() > 0) {
+        if (position != null) {
+          Note testNote = position.getNote();
+          if (testNote != null) {
+            recurs = testNote.getRecursAsString();
+          } // end if we have a note to test
+        } // end if we have a position that might contain a note
+      } // end if we don't have any recurs data from the recurs widget
+    } // end if this list has a recurs field
+    return recurs;
+  }
+  
+  /**
+   Does this date have an associated rule for recurrence?
+   */
+  public boolean canRecur() {
+    return recursIncluded;
+  }
+  
+
+  
+
 
   /**
    Check to see if the user has changed anything and take appropriate
@@ -1334,60 +1445,78 @@ public class NotenikMainFrame
     for (int i = 0; i < noteIO.getNumberOfFields(); i++) {
       DataFieldDefinition fieldDef = noteIO.getRecDef().getDef(i);
       String fieldName = fieldDef.getProperName();
-      DataWidget widget = widgets.get(i);
-      if (fieldName.equalsIgnoreCase(NoteParms.TITLE_FIELD_NAME)) {
-        if (! note.equalsTitle (widget.getText())) {
-          oldTitle = note.getTitle();
-          note.setTitle (widget.getText());
-          modified = true;
+      if (i < widgets.size()) {
+        DataWidget widget = widgets.get(i);
+        if (fieldName.equalsIgnoreCase(NoteParms.TITLE_FIELD_NAME)) {
+          if (! note.equalsTitle (widget.getText())) {
+            oldTitle = note.getTitle();
+            note.setTitle (widget.getText());
+            modified = true;
+          }
         }
-      }
-      else
-      if (fieldName.equalsIgnoreCase(NoteParms.LINK_FIELD_NAME)) {
-        if ((widget.getText().equals (note.getLinkAsString()))
-            || ((widget.getText().length() == 0) && note.blankLink())) {
-          // No change
-        } else {
-          note.setLink (widget.getText());
-          modified = true;
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.LINK_FIELD_NAME)) {
+          if ((widget.getText().equals (note.getLinkAsString()))
+              || ((widget.getText().length() == 0) && note.blankLink())) {
+            // No change
+          } else {
+            note.setLink (widget.getText());
+            modified = true;
+          }
         }
-      }
-      else
-      if (fieldName.equalsIgnoreCase(NoteParms.TAGS_FIELD_NAME)) {
-        if (! note.equalsTags (widget.getText())) {
-          note.setTags (widget.getText());
-          modified = true;
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.TAGS_FIELD_NAME)) {
+          if (! note.equalsTags (widget.getText())) {
+            note.setTags (widget.getText());
+            modified = true;
+          }
         }
-      }
-      else
-      if (fieldName.equalsIgnoreCase(NoteParms.BODY_FIELD_NAME)) {
-        if (! widget.getText().equals (note.getBody())) {
-          note.setBody (widget.getText());
-          modified = true;
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.BODY_FIELD_NAME)) {
+          if (! widget.getText().equals (note.getBody())) {
+            note.setBody (widget.getText());
+            modified = true;
+          }
+        } 
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.SEQ_FIELD_NAME)) {
+          if (! widget.getText().equals (note.getSeq())) {
+            note.setSeq (widget.getText());
+            modified = true;
+          }
+        } 
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.STATUS_FIELD_NAME)) {
+          ItemStatus statusValue = new ItemStatus(widget.getText());
+          if (note.getStatus().compareTo(statusValue) != 0) {
+            note.setStatus (widget.getText());
+            modified = true;
+          }
+        } 
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.RECURS_FIELD_NAME)) {
+          RecursValue recursValue = new RecursValue(widget.getText());
+          if (note.getRecurs().compareTo(recursValue) != 0) {
+            note.setRecurs (widget.getText());
+            modified = true;
+          }
+        }  
+        else
+        if (fieldName.equalsIgnoreCase(NoteParms.DATE_FIELD_NAME)) {
+          String newDate = widget.getText();
+          if (note.getDateAsString().compareTo(newDate) != 0) {
+            note.setDate(newDate);
+            modified = true;
+          }
         }
-      } 
-      else
-      if (fieldName.equalsIgnoreCase(NoteParms.SEQ_FIELD_NAME)) {
-        if (! widget.getText().equals (note.getSeq())) {
-          note.setSeq (widget.getText());
-          modified = true;
-        }
-      } 
-      else
-      if (fieldName.equalsIgnoreCase(NoteParms.STATUS_FIELD_NAME)) {
-        ItemStatus statusValue = new ItemStatus(widget.getText());
-        if (note.getStatus().compareTo(statusValue) != 0) {
-          note.setStatus (widget.getText());
-          modified = true;
-        }
-      } 
-      else {
-        DataField nextField = note.getField(i);
-        if (! widget.getText().equals(nextField.getData())) {
-          note.storeField(fieldName, widget.getText());
-          modified = true;
-        } // end if generic field has been changed
-      } // end if generic field
+        else {
+          DataField nextField = note.getField(i);
+          if (! widget.getText().equals(nextField.getData())) {
+            note.storeField(fieldName, widget.getText());
+            modified = true;
+          } // end if generic field has been changed
+        } // end if generic field
+      } // end if we have a widget
     } // end for each field
     
     // If entry has been modified, then let's update if we can
@@ -1861,11 +1990,39 @@ public class NotenikMainFrame
     statusBar.setStatus(String.valueOf(purged) + " Notes purged");
   } // end of method purge
   
+  /**
+   This item is done. 
+   
+   We will either mark it as complete, or bump the date. 
+  */
   private void closeNote() {
     Note note = position.getNote();
-    String closedStr = noteIO.getNoteParms().getItemStatusConfig().getClosedString();
-    statusWidget.setText(closedStr);
-    // newNote.setStatus(ItemStatusConfig.getShared().getClosedString());
+    if (note.hasRecurs() && note.hasDate()) {
+      // Increment Date and leave status alone
+      StringDate date = note.getDate();
+      String newDate = note.getRecurs().recur(date);
+      dateWidget.setText(newDate);
+    }
+    else
+    if (statusIncluded) {
+      // Change Status to Closed
+      String closedStr = noteIO.getNoteParms().getItemStatusConfig().getClosedString();
+      statusWidget.setText(closedStr);
+      if (dateIncluded) {
+        dateWidget.setText(StringDate.getTodayCommon());
+      }
+      // newNote.setStatus(ItemStatusConfig.getShared().getClosedString());
+    }
+    
+    if (itemTabbedPane.getSelectedIndex() != CONTENT_TAB_INDEX) {
+      
+    }
+    if (position != null 
+        && displayTab != null
+        && itemTabbedPane.getSelectedIndex() != CONTENT_TAB_INDEX) {
+      modIfChanged();
+      positionAndDisplay();
+    }
   }
   
   /**
@@ -1911,7 +2068,11 @@ public class NotenikMainFrame
     linkText = null;
     tagsTextSelector = null;
     statusWidget = null;
+    dateWidget = null;
+    recursWidget = null;
     statusIncluded = false;
+    dateIncluded = false;
+    recursIncluded = false;
     seqWidget = null;
     seqIncluded = false;
     JPanel notePanel = new JPanel();
@@ -1925,7 +2086,6 @@ public class NotenikMainFrame
     for (int i = 0; i < noteIO.getNumberOfFields(); i++) {
       DataFieldDefinition fieldDef = noteIO.getRecDef().getDef(i);
       widgetWithLabel = noteIO.getNoteParms().getWidgetWithLabel(fieldDef, this, gb); 
-      
       switch (fieldDef.getType()) {
         // Special processing for Tags
         case (DataFieldDefinition.TAGS_TYPE):
@@ -1946,6 +2106,14 @@ public class NotenikMainFrame
           statusWidget = widgetWithLabel.getWidget();
           statusIncluded = true;
           break;
+        case (DataFieldDefinition.DATE_TYPE):
+          dateWidget = (DateWidget)widgetWithLabel.getWidget();
+          dateIncluded = true;
+          break;
+        case (DataFieldDefinition.RECURS_TYPE):
+          recursIncluded = true;
+          recursWidget = widgetWithLabel.getWidget();
+          break;
         case (DataFieldDefinition.SEQ_TYPE):
           seqWidget = widgetWithLabel.getWidget();
           seqIncluded = true;
@@ -1954,6 +2122,11 @@ public class NotenikMainFrame
       widgets.add(widgetWithLabel.getWidget());
 
     } // end for each data field
+    
+    if (dateIncluded) {
+      dateWidget.setOwner(this);
+      dateWidget.setFrame(this);
+    }
     
     lastModDateLabel = new javax.swing.JLabel();
     lastModDateText = new javax.swing.JLabel();
@@ -1975,7 +2148,8 @@ public class NotenikMainFrame
     }
 
     purgeMenuItem.setEnabled(statusIncluded);
-    closeNoteMenuItem.setEnabled(statusIncluded);
+    closeNoteMenuItem.setEnabled(statusIncluded 
+        || (dateIncluded && recursIncluded));
    
   }
 
@@ -2007,6 +2181,7 @@ public class NotenikMainFrame
     noteList.setSortParm(noteSortParm);
     position = new NotePositioned(noteIO.getRecDef());
     noteTable.setModel(noteList);
+    noteList.setTable(noteTable);
     noteTree.setModel (noteList.getTagsModel().getModel());
     noteTree.getSelectionModel().setSelectionMode
         (TreeSelectionModel.SINGLE_TREE_SELECTION);
@@ -2561,6 +2736,7 @@ public class NotenikMainFrame
       StringDate today = new StringDate();
       today.set(StringDate.getTodayYMD());
       templateNote.setDate(today);
+      templateNote.setRecurs("Every Week");
       templateNote.setAuthor("The Author of the Note");
       templateNote.setRating("5");
       templateNote.setIndex("Index Term");
@@ -3431,6 +3607,7 @@ public class NotenikMainFrame
     @SuppressWarnings("unchecked")
   // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
   private void initComponents() {
+    java.awt.GridBagConstraints gridBagConstraints;
 
     mainToolBar = new javax.swing.JToolBar();
     okButton = new javax.swing.JButton();
@@ -3451,6 +3628,8 @@ public class NotenikMainFrame
     treePanel = new javax.swing.JPanel();
     treeScrollPane = new javax.swing.JScrollPane();
     noteTree = new javax.swing.JTree();
+    expandAllButton = new javax.swing.JButton();
+    collapseAllButton = new javax.swing.JButton();
     itemTabbedPane = new javax.swing.JTabbedPane();
     mainMenuBar = new javax.swing.JMenuBar();
     fileMenu = new javax.swing.JMenu();
@@ -3720,7 +3899,7 @@ public class NotenikMainFrame
 
     collectionTabbedPane.addTab("List", listPanel);
 
-    treePanel.setLayout(new java.awt.BorderLayout());
+    treePanel.setLayout(new java.awt.GridBagLayout());
 
     noteTree.getSelectionModel().setSelectionMode
     (TreeSelectionModel.SINGLE_TREE_SELECTION);
@@ -3731,7 +3910,36 @@ public class NotenikMainFrame
     });
     treeScrollPane.setViewportView(noteTree);
 
-    treePanel.add(treeScrollPane, java.awt.BorderLayout.CENTER);
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 0;
+    gridBagConstraints.gridy = 1;
+    gridBagConstraints.gridwidth = 2;
+    gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+    gridBagConstraints.weightx = 0.9;
+    gridBagConstraints.weighty = 0.9;
+    treePanel.add(treeScrollPane, gridBagConstraints);
+
+    expandAllButton.setText("Expand All");
+    expandAllButton.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        expandAllButtonActionPerformed(evt);
+      }
+    });
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 0;
+    gridBagConstraints.gridy = 0;
+    treePanel.add(expandAllButton, gridBagConstraints);
+
+    collapseAllButton.setText("Collapse All");
+    collapseAllButton.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        collapseAllButtonActionPerformed(evt);
+      }
+    });
+    gridBagConstraints = new java.awt.GridBagConstraints();
+    gridBagConstraints.gridx = 1;
+    gridBagConstraints.gridy = 0;
+    treePanel.add(collapseAllButton, gridBagConstraints);
 
     collectionTabbedPane.addTab("Tags", treePanel);
 
@@ -4387,7 +4595,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   }//GEN-LAST:event_purgeMenuItemActionPerformed
 
   private void closeNoteMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closeNoteMenuItemActionPerformed
-    if (statusIncluded) {
+    if (statusIncluded || (dateIncluded && recursIncluded)) {
       closeNote();
     }
   }//GEN-LAST:event_closeNoteMenuItemActionPerformed
@@ -4458,11 +4666,20 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     openHelpNotes();
   }//GEN-LAST:event_openHelpNotesMenuItemActionPerformed
 
+  private void expandAllButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_expandAllButtonActionPerformed
+    expandAllTags();
+  }//GEN-LAST:event_expandAllButtonActionPerformed
+
+  private void collapseAllButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_collapseAllButtonActionPerformed
+    collapseAllTags();
+  }//GEN-LAST:event_collapseAllButtonActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
   private javax.swing.JMenuItem addReplaceMenuItem;
   private javax.swing.JMenuItem closeNoteMenuItem;
+  private javax.swing.JButton collapseAllButton;
   private javax.swing.JMenu collectionMenu;
   private javax.swing.JMenuItem collectionPrefsMenuItem;
   private javax.swing.JTabbedPane collectionTabbedPane;
@@ -4471,6 +4688,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem deleteNoteMenuItem;
   private javax.swing.JMenu editMenu;
   private javax.swing.JMenuItem escapeMenuItem;
+  private javax.swing.JButton expandAllButton;
   private javax.swing.JMenu exportMenu;
   private javax.swing.JMenuItem exportNotenikMenuItem;
   private javax.swing.JMenuItem exportOPML;
