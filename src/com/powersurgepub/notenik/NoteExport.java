@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 - 2016 Herb Bowie
+ * Copyright 2009 - 2017 Herb Bowie
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package com.powersurgepub.notenik;
 
+  import com.powersurgepub.psdatalib.markup.*;
   import com.powersurgepub.psdatalib.notenik.*;
   import com.powersurgepub.psdatalib.psdata.*;
   import com.powersurgepub.psdatalib.pstags.*;
@@ -27,7 +28,6 @@ package com.powersurgepub.notenik;
   import com.powersurgepub.psutils.*;
   import java.io.*;
   import java.util.*;
-  import org.pegdown.*;
   import org.xml.sax.*;
 
 /**
@@ -55,7 +55,7 @@ public class NoteExport {
   public static final String NOTENIK = "notenik";
   public static final String NOTE    = "note";
   
-  private             PegDownProcessor  pegDown;
+  private             MdToHTML    mdToHTML = MdToHTML.getShared();
   
   private             NotenikMainFrame mainFrame;
   
@@ -109,20 +109,17 @@ public class NoteExport {
 
   public NoteExport (NotenikMainFrame mainFrame) {
     this.mainFrame = mainFrame;
-    int pegDownOptions = 0;
-    pegDownOptions = pegDownOptions + Extensions.SMARTYPANTS;
-    pegDown = new PegDownProcessor(pegDownOptions);
   }
   
   public boolean bodyToHTMLClipboard (Note note) {
-    String html = pegDown.markdownToHtml(note.getBody());
+    String html = mdToHTML.markdownToHtml(note.getBody());
     TextLineReader in  = new StringLineReader(html);
     TextLineWriter out = new ClipboardMaker();
     return TextUtils.copyFile(in, out);
   }
   
   public boolean bodyToHTMLFile (Note note, File htmlFile) {
-    String html = pegDown.markdownToHtml(note.getBody());
+    String html = mdToHTML.markdownToHtml(note.getBody());
     TextLineReader in  = new StringLineReader(html);
     TextLineWriter out = new FileMaker(htmlFile);
     return TextUtils.copyFile(in, out);

@@ -8,7 +8,7 @@
 
 Let me introduce you to [Notenik](http://notenik.net), a simple but powerful system for taking, collecting and referencing notes.
 
-This introduction describes Notenik [Version 2.70](http://www.powersurgepub.com/products/notenik/versions.html).
+This introduction describes Notenik [Version 2.80](http://www.powersurgepub.com/products/notenik/versions.html).
 
 <h2 id="table-of-contents">Table of Contents</h2>
 
@@ -67,6 +67,15 @@ This introduction describes Notenik [Version 2.70](http://www.powersurgepub.com/
     </li>
     <li>
       <a href="#track-the-status-of-your-notes">Track the Status of Your Notes</a>
+    </li>
+    <li>
+      <a href="#date-your-notes">Date Your Notes</a>
+    </li>
+    <li>
+      <a href="#specify-date-recurs-rules">Specify Date Recurs Rules</a>
+    </li>
+    <li>
+      <a href="#track-your-tasks">Track Your Tasks</a>
     </li>
     <li>
       <a href="#index-your-notes">Index Your Notes</a>
@@ -159,7 +168,7 @@ If you'd like to learn more about Notenik, then it's probably best to download t
 * [Notenik Mac App](http://www.notenik.net/notenik.dmg)
 * [PowerSurge Publishing Omni Pack](http://www.powersurgepub.com/downloads/pspub-omni-pack.zip)
 
-From this point on, I'll introduce one concept at a time, providing periodic exercises illustrating how the concepts are implemented using Notenik.
+From this point on, I'll introduce one concept at a time.
 
 <h2 id="help-using-notenik">Help Using Notenik</h2>
 
@@ -266,6 +275,8 @@ When you view a Note on the Display tab, you will see the Body Field Value conve
 
 In fact, there is an option under the Note menu to generate HTML from the Body of a Note, and to either copy it to your system clipboard, in preparation for pasting the HTML somewhere else, or to store it in a file. You can even specify a preferred HTML folder for each of your Collections, in your Collection Preferences.
 
+Notenik uses the [Flexmark](https://github.com/vsch/flexmark-java) parser to convert from Markdown to HTML, and includes the Typographic, Tables and Definitions extensions.
+
 <h2 id="add-other-fields-to-your-notes">Add Other Fields to Your Notes</h2>
 
 
@@ -368,9 +379,9 @@ Following is a sample Note file, showing all of the Fields that Notenik treats a
 <h2 id="sequence-your-notes">Sequence Your Notes</h2>
 
 
-Add a Seq Field to a Collection (using a template file) in order to specify a sequence number, revision letter, or version number to be associated with each Note.
+Add a Seq Field to a Collection (using a template file) in order to specify a sequence number, revision letter, version number or priority to be associated with each Note.
 
-A Seq field may contain letters, digits and one or more periods (aka decimal points).
+A Seq field may contain letters, digits and one or more periods (aka decimal points) or hyphens.
 
 You may wish to assign a unique Seq value to each Note in a Collection, but Notenik does not require this (in other words, it does allow duplicate Seq values to be assigned to different Notes).
 
@@ -404,6 +415,35 @@ The labels may be modified by placing a series of integer + label pairs in the V
 
 Look under the File menu for an option to Purge Notes that have been Canceled or Completed. You'll be given the option of discarding the purged Notes, or of copying them to another location.
 
+<h2 id="date-your-notes">Date Your Notes</h2>
+
+
+Add a Date field to a Collection in order to track the date each note was officially published, or a due date for each note. A date may be expressed in any of a number of common formats. It may also be a partial date, such as a year, or a year and a month. It may or may not contain a specific time of day.
+
+Note that the Date field has several helpful editing tools. You can enter a freeform date yourself, or you can use a Calendar widget to pick dates from a Calendar. You can use the Today button to set the date to Today's date, and you can use the Recurs button, if a Recurs rule has been specified.
+
+<h2 id="specify-date-recurs-rules">Specify Date Recurs Rules</h2>
+
+
+Add a Recurs field to a Collection to cause a Date for a Note to recur on a regular basis.
+
+Specify a recurs rule using normal English, such as "Every 3 months," "Every Tuesday" or "Every Year."
+
+Use the Recurs button on the Date editing row to apply the rule to the current Date associated with the selected Note.
+
+<h2 id="track-your-tasks">Track Your Tasks</h2>
+
+
+Add a Status field, a Seq field, a Date field and a Recurs field to a Collection, and you have all the elements of a personal task management system.
+
+A Collection such as this can use the Date field to track due dates, and/or the Seq field to track priorities. If desired, use the Tags field to group tasks by context and/or by project.
+
+If you use the Close Note option under the Note menu, then you can cause the Due Date to recur (if a Recurs field is available), or the Status field to show the task as Completed, if it is not eligible to recur.
+
+The Sort menu contains two options specific to task tracking. The first option sorts all the Notes in a list by Date and then Seq, while the second option sorts all tasks by Seq and then Date. In both cases, completed tasks sort to the bottom of the list.
+
+And don't forget the Purge Option under the File menu, which will allow you to purge Cancelled and Completed Notes from a Collection.
+
 <h2 id="index-your-notes">Index Your Notes</h2>
 
 
@@ -432,8 +472,6 @@ You can use whatever Field Labels you want within a Collection, but there are a 
 * Rating -- Your rating of the note, on a scale of one to five.
 
 * Type -- The type of note. Any values may be used to distinguish between different types of notes within a collection.
-
-* Date -- The date of the note, such as the date the note was officially published, or a due date for the note. The date may be expressed in any of a number of common formats. It may also be a partial date, such as a year, or a year and a month. It may or may not contain a specific time of day.
 
 * Teaser -- An excerpt from the note used as a teaser in a list of notes. The teaser may be formatted using Markdown.
 
@@ -646,12 +684,7 @@ Notenik also incorporates the following open-source libraries.
 
 * JExcelAPI Copyright 2002 Andrew Khan, used under the terms of the GNU Lesser General Public License
  
- 
-* parboiled Copyright 2009-2011 Mathias Doenitz, used under the terms of the Apache License, Version 2.0
- 
- 
-* pegdown Copyright 2010-2011 Mathias Doenitz, used under the terms of the Apache License, Version 2.0
- 
+* Flexmark Copyright 2016 by Vladimir Schneider, used under the terms of the BSD 2-clause license.
  
 * Xerces Copyright 1999-2012 The Apache Software Foundation, used under the terms of the Apache License, Version 2.0
  

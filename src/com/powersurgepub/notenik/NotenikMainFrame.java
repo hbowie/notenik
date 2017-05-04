@@ -68,7 +68,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "2.70";
+  public static final String PROGRAM_VERSION = "2.80";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -333,7 +333,7 @@ public class NotenikMainFrame
     aboutWindow = new AboutWindow(
       false,   // loadFromDisk, 
       true,    // jxlUsed,
-      true,    // pegdownUsed,
+      true,    // Markdown converter Used,
       true,    // xerces used
       true,    // saxon used
       "2009"); // copyRightYearFrom
@@ -1843,6 +1843,10 @@ public class NotenikMainFrame
     addFirstNoteIfListEmpty();
     buildNoteTabs();
     noteList.fireTableDataChanged();
+    if (fileToOpen != null && noteList != null) {
+      noteSortParm.setParm(currentFileSpec.getNoteSortParm());
+      noteList.sortParmChanged();
+    }
     position = new NotePositioned (noteIO.getRecDef());
     setPreferredCollectionView();
     int index = -1;
@@ -2605,6 +2609,9 @@ public class NotenikMainFrame
       modIfChanged();
       // checkForUnsavedChanges();
       publishWindow.closeSource();
+      if (currentFileSpec != null) {
+        currentFileSpec.setNoteSortParm(noteSortParm.getParm());
+      }
       filePrefs.handleClose();
     }
   }
