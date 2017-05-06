@@ -51,10 +51,10 @@ This introduction describes Notenik [Version 2.80](http://www.powersurgepub.com/
       <a href="#add-other-fields-to-your-notes">Add Other Fields to Your Notes</a>
     </li>
     <li>
-      <a href="#add-a-link-field-to-make-a-bookmark">Add a Link Field to Make a Bookmark</a>
+      <a href="#organize-your-notes-with-tags">Organize Your Notes with Tags</a>
     </li>
     <li>
-      <a href="#organize-your-notes-with-tags">Organize Your Notes with Tags</a>
+      <a href="#add-a-link-field-to-make-a-bookmark">Add a Link Field to Make a Bookmark</a>
     </li>
     <li>
       <a href="#override-default-fields-with-a-template-file">Override Default Fields with a Template file</a>
@@ -298,19 +298,6 @@ Each Field Label may be considered to have a *proper form* (including capitaliza
 
 The Notenik approach to identifying fields within a Note is very similar to the [Multimarkdown metadata syntax](http://fletcher.github.io/MultiMarkdown-4/metadata.html), and also similar to [YAML](https://en.wikipedia.org/wiki/YAML).
 
-<h2 id="add-a-link-field-to-make-a-bookmark">Add a Link Field to Make a Bookmark</h2>
-
-
-A Link Field within Notenik is intended to hold a URL: a hyperlink to a location on the Web (or to a local file, if you're prefer to use it that way).
-
-You can easily Launch a link from within Notenik, either by using the dropdown to the left of the Link value, or by clicking on the Launch button in the Toolbar.
-
-The Link Label dropdown also provides a couple of other options. Use the Tweak option to "tweak" your URL in some potentially useful ways; use the Disk File option to select a local file on your computer, to build a Link pointing to that file.
-
-Adding a Link to a Note doesn't necessarily reduce the Note to a simple Bookmark, but this is certainly one way to use a Collection of Notes.
-
-Look under the Collection menu for an option to Validate Links. Notenik will check all your Link Values to make sure they're accessible, and will add an 'Invalid URL' tag to any Notes that are unresponsive.
-
 <h2 id="organize-your-notes-with-tags">Organize Your Notes with Tags</h2>
 
 
@@ -333,6 +320,19 @@ Note the the Collections Menu contains a few nice options for making mass change
 * Change all your tags to lower case letters.
 
 There's also an option under the File menu to Reload the current Collection without any untagged items. This doesn't permanently delete the items with blank tags -- it just temporarily hides them from view.
+
+<h2 id="add-a-link-field-to-make-a-bookmark">Add a Link Field to Make a Bookmark</h2>
+
+
+A Link Field within Notenik is intended to hold a URL: a hyperlink to a location on the Web (or to a local file, if you're prefer to use it that way).
+
+You can easily Launch a link from within Notenik, either by using the dropdown to the left of the Link value, or by clicking on the Launch button in the Toolbar.
+
+The Link Label dropdown also provides a couple of other options. Use the Tweak option to "tweak" your URL in some potentially useful ways; use the Disk File option to select a local file on your computer, to build a Link pointing to that file.
+
+Adding a Link to a Note doesn't necessarily reduce the Note to a simple Bookmark, but this is certainly one way to use a Collection of Notes.
+
+Look under the Collection menu for an option to Validate Links. Notenik will check all your Link Values to make sure they're accessible, and will add an 'Invalid URL' tag to any Notes that are unresponsive.
 
 <h2 id="override-default-fields-with-a-template-file">Override Default Fields with a Template file</h2>
 
@@ -420,7 +420,7 @@ Look under the File menu for an option to Purge Notes that have been Canceled or
 
 Add a Date field to a Collection in order to track the date each note was officially published, or a due date for each note. A date may be expressed in any of a number of common formats. It may also be a partial date, such as a year, or a year and a month. It may or may not contain a specific time of day.
 
-Note that the Date field has several helpful editing tools. You can enter a freeform date yourself, or you can use a Calendar widget to pick dates from a Calendar. You can use the Today button to set the date to Today's date, and you can use the Recurs button, if a Recurs rule has been specified.
+Note that the Date field has several helpful editing tools. You can enter a free-form date yourself, or you can use a Calendar widget to pick dates from a Calendar. You can use the Today button to set the date to Today's date, and you can use the Recurs button to apply the Recurs rule, if one has been supplied.
 
 <h2 id="specify-date-recurs-rules">Specify Date Recurs Rules</h2>
 
