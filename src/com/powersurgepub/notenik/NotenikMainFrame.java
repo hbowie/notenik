@@ -68,7 +68,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "2.80";
+  public static final String PROGRAM_VERSION = "2.90";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -129,7 +129,8 @@ public class NotenikMainFrame
   private             UserPrefs           userPrefs;
   private             GeneralPrefs        generalPrefs;
   private             CollectionPrefs     collectionPrefs;
-  private             RecentFiles         recentFiles;
+  private             MasterCollection    masterCollection;
+  private             boolean             editingMasterCollection = false;
   private             FilePrefs           filePrefs;
   private             WebPrefs            webPrefs;
   private             Reports             reports;
@@ -290,15 +291,23 @@ public class NotenikMainFrame
     
     exporter = new NoteExport(this);
     
-    recentFiles = new RecentFiles();
+    masterCollection = new MasterCollection();
     
-    filePrefs.setRecentFiles(recentFiles);
-    recentFiles.registerMenu(openRecentMenu, this);
+    filePrefs.setRecentFiles(masterCollection.getRecentFiles());
+    masterCollection.registerMenu(openRecentMenu, this);
     
-    recentFiles.loadFromPrefs();
+    masterCollection.load();
     
     if (filePrefs.purgeRecentFilesAtStartup()) {
-      recentFiles.purgeInaccessibleFiles();
+      masterCollection.purgeInaccessibleFiles();
+    }
+    
+    if (masterCollection.hasMasterCollection()) {
+      createMasterCollectionMenuItem.setEnabled(false);
+      openMasterCollectionMenuItem.setEnabled(true);
+    } else {
+      createMasterCollectionMenuItem.setEnabled(true);
+      openMasterCollectionMenuItem.setEnabled(false);
     }
     
     // initRecDef();
@@ -387,7 +396,7 @@ public class NotenikMainFrame
     if (lastFolderString != null
         && lastFolderString.length() > 0) {
       File lastFolder = new File (lastFolderString);
-      if (FileUtils.isGoodInputDirectory(lastFolder)) {
+      if (goodCollection(lastFolder)) {
         if (lastFileSpec != null) {
           lastTitle = lastFileSpec.getLastTitle();
         }
@@ -403,11 +412,9 @@ public class NotenikMainFrame
       Home.getShared().ensureProgramDefaultDataFolder();
       if (defaultDataFolder.exists()) {
         openFile (defaultDataFolder, "", true);
-        if (noteList.size() == 0) {
-          addFirstNote();
-        }
+        addFirstNoteIfListEmpty();
       } else {
-        newFile();
+        userNewFile();
         saveFileAs(defaultDataFolder);
       }
       // displayNote();
@@ -452,7 +459,7 @@ public class NotenikMainFrame
     boolean modOK = modIfChanged();
 
     if (modOK) {
-      position = new NotePositioned(noteIO.getRecDef());
+      position = new NotePositioned(noteIO.getNoteParms());
       position.setIndex (noteList.size());
       fileName = "";
       boolean seqSet = false;
@@ -487,7 +494,7 @@ public class NotenikMainFrame
   /**
    Add the first Note for a new collection.
    */
-  public void addFirstNote() {
+  private void addFirstNote() {
     position = new NotePositioned(noteIO.getRecDef());
     position.setIndex (noteList.size());
 
@@ -579,6 +586,11 @@ public class NotenikMainFrame
               "Unable to delete note at " + position.getNote().getFileName(), 
               "Delete Failure");
         }
+        
+        if (deleted && editingMasterCollection) {
+          masterCollection.removeRecentFile(noteToDelete.getTitle());
+        }
+        
         if (folderSyncPrefs.getSync()) {
           File syncFile = noteIO.getSyncFile(
               folderSyncPrefs.getSyncFolder(), 
@@ -1558,6 +1570,10 @@ public class NotenikMainFrame
           noteList.modify(position);
         }
         noteList.fireTableDataChanged();
+        
+        if (editingMasterCollection) {
+          masterCollection.modRecentFile(oldTitle, note.getTitle());
+        }
       }
       oldSeq = "";
     } // end if modified
@@ -1706,7 +1722,7 @@ public class NotenikMainFrame
       tips.savePrefs();
     }
     boolean prefsOK = userPrefs.savePrefs();
-    recentFiles.savePrefs();
+    masterCollection.savePrefs();
     tweakerPrefs.savePrefs();
   }
 
@@ -1722,7 +1738,13 @@ public class NotenikMainFrame
                   onto the application icon.
    */
   public void handleOpenFile (File inFile) {
-    openFile (inFile, "", true);
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      if (goodCollection(inFile)) {
+        closeFile();
+        openFile (inFile, "", true);
+      }
+    }
   }
 
   /**
@@ -1746,30 +1768,33 @@ public class NotenikMainFrame
    */
   public void handleQuit() {
 
-    closeFile();
-
-    savePrefs();
-
-    System.exit(0);
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      closeFile();
+      savePrefs();
+      System.exit(0);
+    }
   }
 
   private void reloadFile() {
-    modIfChanged();
-    saveFile();
-    NotePositioned savePosition = position;
-    if (FileUtils.isGoodInputDirectory(noteFile)) {
-      openFile (noteFile, "", true);
-      position = savePosition;
-      positionAndDisplay();
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      saveFile();
+      NotePositioned savePosition = position;
+      if (goodCollection(noteFile)) {
+        openFile (noteFile, "", true);
+        position = savePosition;
+        positionAndDisplay();
+      }
     }
   }
   
   private void reloadTaggedOnly() {
-    boolean ok = modIfChanged();
-    if (ok) {
+    boolean modOK = modIfChanged();
+    if (modOK) {
       saveFile();
       NotePositioned savePosition = position;
-      if (FileUtils.isGoodInputDirectory(noteFile)) {
+      if (goodCollection(noteFile)) {
         openFile (noteFile, "", false);
         position = savePosition;
         positionAndDisplay();
@@ -1780,38 +1805,92 @@ public class NotenikMainFrame
   /**
    Let the user choose a folder to open.
    */
-  private void openFile() {
-    closeFile();
-    fileChooser.setDialogTitle ("Open Notes Collection");
-    fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-    if (FileUtils.isGoodInputDirectory(noteFile)) {
-      fileChooser.setCurrentDirectory (currentDirectory);
-    }
-
-    File selectedFile = null;
-    selectedFile = fileChooser.showOpenDialog(this);
-    if (selectedFile != null) {
-      if (FileUtils.isGoodInputDirectory(selectedFile)) {
-        openFile (selectedFile, "", true);
-      } else {
-        trouble.report ("Trouble opening file " + selectedFile.toString(),
-            "File Open Error");
+  private void userOpenFile() {
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      fileChooser.setDialogTitle ("Open Notes Collection");
+      fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+      if (FileUtils.isGoodInputDirectory(noteFile)) {
+        fileChooser.setCurrentDirectory (currentDirectory);
       }
-    } // end if user approved a file/folder choice
-  } // end method openFile
+
+      File selectedFile = null;
+      selectedFile = fileChooser.showOpenDialog(this);
+      if (selectedFile != null) {
+        if (FileUtils.isGoodInputDirectory(selectedFile)) {
+          closeFile();
+          openFile (selectedFile, "", true);
+        } else {
+          trouble.report ("Trouble opening file " + selectedFile.toString(),
+              "File Open Error");
+        }
+      } // end if user approved a file/folder choice
+    }
+  } // end method userOpenFile
   
   /**
    Open the Help Notes for Notenik. 
   */
   private void openHelpNotes() {
 
-    File appFolder = Home.getShared().getAppFolder();
-    File helpFolder = new File (appFolder, "help");
-    File helpNotes = new File (helpFolder, "notenik-intro");
-    openFile (helpNotes, "Help Notes", true);
-    noteSortParm.setParm(NoteSortParm.SORT_BY_SEQ_AND_TITLE);
-    firstNote();
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      File appFolder = Home.getShared().getAppFolder();
+      File helpFolder = new File (appFolder, "help");
+      File helpNotes = new File (helpFolder, "notenik-intro");
+      if (goodCollection(helpNotes)) {
+        closeFile();
+        openFile (helpNotes, "Help Notes", true);
+        noteSortParm.setParm(NoteSortParm.SORT_BY_SEQ_AND_TITLE);
+        firstNote();
+      }
+    }
+  }
+  
+  private void openFileFromCurrentNote () {
     
+    boolean modOK = modIfChanged();
+    boolean ok = modOK;
+    if (modOK) {
+      Note note = null;
+      
+      if (position == null) {
+        ok = false;
+      }
+      
+      if (ok) {
+        note = position.getNote();
+        if (note == null) {
+          ok = false;
+        }
+      }
+
+      if (ok) {
+        File fileToOpen = note.getLinkAsFile();
+        if (goodCollection(fileToOpen)) {
+          String collectionTitle = note.getTitle();
+          closeFile();
+          openFile(fileToOpen, collectionTitle, true);
+        }
+      }
+    }
+  }
+  
+  /**
+   Check to see if the passed file seems to point to a valid 
+   Collection folder. 
+  
+   @param fileToCheck The file to be checked. 
+  
+   @return false if file is null, doesn't exist, or isn't a directory,
+           or can't be read, or can't be written.         
+  */
+  public boolean goodCollection(File fileToCheck) {
+    return (fileToCheck != null
+      && fileToCheck.exists()
+      && fileToCheck.isDirectory()
+      && fileToCheck.canRead()
+      && fileToCheck.canWrite());
   }
 
   private void openFile (
@@ -1819,8 +1898,16 @@ public class NotenikMainFrame
       String titleToDisplay, 
       boolean loadUnTagged) {
     
-    closeFile();
+    // closeFile();
     
+    if (masterCollection.hasMasterCollection()
+        && fileToOpen.equals(masterCollection.getMasterCollectionFolder())) {
+      launchButton.setText("Open");
+      editingMasterCollection = true;
+    } else {
+      launchButton.setText("Launch");
+      editingMasterCollection = false;
+    }
     logNormal("Opening folder " + fileToOpen.toString());
     noteIO = new NoteIO(fileToOpen, NoteParms.NOTES_ONLY_TYPE);
     
@@ -1866,132 +1953,134 @@ public class NotenikMainFrame
   */
   private void purge() {
     
-    modIfChanged();
-    noFindInProgress();
-    int purged = 0;
-    
-    String[] options = {
-      "Cancel",
-      "Purge and Discard",
-      "Purge and Copy"};
-    
-    int purgeCancel = 0;
-    int purgeDiscard = 1;
-    int purgeCopy = 2;
-    
-    int option = JOptionPane.showOptionDialog(this,
-        "Purge Closed Notes?",
-        "Purge Options",
-        JOptionPane.YES_NO_CANCEL_OPTION,
-        JOptionPane.QUESTION_MESSAGE,
-        Home.getShared().getIcon(),
-        options,
-        options[purgeCopy]);
-    
-    File purgeTarget = null;
-    String archiveFolderStr = currentFileSpec.getArchiveFolder();
-    if (archiveFolderStr != null && archiveFolderStr.length() > 0) {
-      File archiveFolder = new File(archiveFolderStr);
-      if (archiveFolder.exists() 
-          && archiveFolder.isDirectory() 
-          && archiveFolder.canWrite()) {
-        purgeTarget = archiveFolder;
-        fileChooser.setCurrentDirectory(archiveFolder.getParentFile());
-        fileChooser.setSelectedFile(archiveFolder);
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      noFindInProgress();
+      int purged = 0;
+
+      String[] options = {
+        "Cancel",
+        "Purge and Discard",
+        "Purge and Copy"};
+
+      int purgeCancel = 0;
+      int purgeDiscard = 1;
+      int purgeCopy = 2;
+
+      int option = JOptionPane.showOptionDialog(this,
+          "Purge Closed Notes?",
+          "Purge Options",
+          JOptionPane.YES_NO_CANCEL_OPTION,
+          JOptionPane.QUESTION_MESSAGE,
+          Home.getShared().getIcon(),
+          options,
+          options[purgeCopy]);
+
+      File purgeTarget = null;
+      String archiveFolderStr = currentFileSpec.getArchiveFolder();
+      if (archiveFolderStr != null && archiveFolderStr.length() > 0) {
+        File archiveFolder = new File(archiveFolderStr);
+        if (archiveFolder.exists() 
+            && archiveFolder.isDirectory() 
+            && archiveFolder.canWrite()) {
+          purgeTarget = archiveFolder;
+          fileChooser.setCurrentDirectory(archiveFolder.getParentFile());
+          fileChooser.setSelectedFile(archiveFolder);
+        }
       }
-    }
-    
-    NoteIO purgeIO = null;
-    
-    if (option == purgeCopy) {
-      fileChooser.setDialogTitle ("Select Folder to Hold Purged Notes");
-      fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-      purgeTarget = fileChooser.showOpenDialog(this);
-      if (purgeTarget == null) {
-        option = purgeCancel;
-      } else {
-        if (FileUtils.isGoodInputDirectory(purgeTarget)) {
-          purgeIO = new NoteIO(purgeTarget, NoteParms.DEFINED_TYPE, noteIO.getRecDef());
-        } else {
-          purgeTarget = null;
+
+      NoteIO purgeIO = null;
+
+      if (option == purgeCopy) {
+        fileChooser.setDialogTitle ("Select Folder to Hold Purged Notes");
+        fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        purgeTarget = fileChooser.showOpenDialog(this);
+        if (purgeTarget == null) {
           option = purgeCancel;
-        }
-      } // end if purge target folder not null
-    } // end if option 1 was chosen
-    
-    if (option == purgeCopy || option == purgeDiscard) {
-      Note workNote;
-      int workIndex = 0;
-      while (workIndex < noteList.size()) {
-        workNote = noteList.get (workIndex);
-        boolean deleted = false;
-        if (workNote.getStatus().isDone()) {
-          boolean okToDelete = true;  
-          String fileToDelete = workNote.getDiskLocation();         
-          if (option == purgeCopy) {
-            try {
-              purgeIO.save(purgeTarget, workNote, false);
-            } catch (IOException e) {
-              okToDelete = false;
-              System.out.println("I/O Error while attempting to save " 
-                  + workNote.getTitle() + " to Archive folder");
-            }
-          } // end of attempt to copy
-          if (okToDelete) {
-            deleted = noteList.remove (workNote);
-            if (! deleted) {
-              System.out.println("Unable to remove " 
-                  + workNote.getTitle() + " from note list");
-            }
-            if (deleted) {
-              deleted = new File(fileToDelete).delete();
-            }
-            if (! deleted) {
-              trouble.report(
-                  "Unable to delete note at " + fileToDelete, 
-                  "Delete Failure");
-            }
-            if (folderSyncPrefs.getSync()) {
-              File syncFile = noteIO.getSyncFile(
-                  folderSyncPrefs.getSyncFolder(), 
-                  folderSyncPrefs.getSyncPrefix(), 
-                  workNote.getTitle());
-              syncFile.delete();
-            }
-            noteList.fireTableDataChanged();
-            if (deleted) {
-              purged++;
-            } 
-          } // End if OK to Delete
-        } // end if newNote is a candidate for deletion
-        if (! deleted) {
-          workIndex++;
-        }
-      } // end of list
-    } // end if user chose to proceed with a purge
-    
-    if (purged > 0 && option == purgeCopy && purgeTarget != null) {
-      currentFileSpec.setArchiveFolder(purgeTarget);
+        } else {
+          if (goodCollection(purgeTarget)) {
+            purgeIO = new NoteIO(purgeTarget, NoteParms.DEFINED_TYPE, noteIO.getRecDef());
+          } else {
+            purgeTarget = null;
+            option = purgeCancel;
+          }
+        } // end if purge target folder not null
+      } // end if option 1 was chosen
+
+      if (option == purgeCopy || option == purgeDiscard) {
+        Note workNote;
+        int workIndex = 0;
+        while (workIndex < noteList.size()) {
+          workNote = noteList.get (workIndex);
+          boolean deleted = false;
+          if (workNote.getStatus().isDone()) {
+            boolean okToDelete = true;  
+            String fileToDelete = workNote.getDiskLocation();         
+            if (option == purgeCopy) {
+              try {
+                purgeIO.save(purgeTarget, workNote, false);
+              } catch (IOException e) {
+                okToDelete = false;
+                System.out.println("I/O Error while attempting to save " 
+                    + workNote.getTitle() + " to Archive folder");
+              }
+            } // end of attempt to copy
+            if (okToDelete) {
+              deleted = noteList.remove (workNote);
+              if (! deleted) {
+                System.out.println("Unable to remove " 
+                    + workNote.getTitle() + " from note list");
+              }
+              if (deleted) {
+                deleted = new File(fileToDelete).delete();
+              }
+              if (! deleted) {
+                trouble.report(
+                    "Unable to delete note at " + fileToDelete, 
+                    "Delete Failure");
+              }
+              if (folderSyncPrefs.getSync()) {
+                File syncFile = noteIO.getSyncFile(
+                    folderSyncPrefs.getSyncFolder(), 
+                    folderSyncPrefs.getSyncPrefix(), 
+                    workNote.getTitle());
+                syncFile.delete();
+              }
+              noteList.fireTableDataChanged();
+              if (deleted) {
+                purged++;
+              } 
+            } // End if OK to Delete
+          } // end if newNote is a candidate for deletion
+          if (! deleted) {
+            workIndex++;
+          }
+        } // end of list
+      } // end if user chose to proceed with a purge
+
+      if (purged > 0 && option == purgeCopy && purgeTarget != null) {
+        currentFileSpec.setArchiveFolder(purgeTarget);
+      }
+
+      if (purged > 0) {
+        openFile (noteFile, "", true);   
+        position.setNavigatorToList (collectionTabbedPane.getSelectedIndex() == 0);
+        position = noteList.first (position);
+        positionAndDisplay();
+      }
+
+      String plural = StringUtils.pluralize("Note", purged);
+
+      JOptionPane.showMessageDialog(this,
+          String.valueOf(purged) + " " + plural + " purged successfully",
+          "Purge Results",
+          JOptionPane.INFORMATION_MESSAGE,
+          Home.getShared().getIcon());
+      Logger.getShared().recordEvent (LogEvent.NORMAL, String.valueOf(purged) 
+          + " " + plural + " purged",
+          false);
+      statusBar.setStatus(String.valueOf(purged) + " Notes purged");
     }
-    
-    if (purged > 0) {
-      openFile (noteFile, "", true);   
-      position.setNavigatorToList (collectionTabbedPane.getSelectedIndex() == 0);
-      position = noteList.first (position);
-      positionAndDisplay();
-    }
-    
-    String plural = StringUtils.pluralize("Note", purged);
-    
-    JOptionPane.showMessageDialog(this,
-        String.valueOf(purged) + " " + plural + " purged successfully",
-        "Purge Results",
-        JOptionPane.INFORMATION_MESSAGE,
-        Home.getShared().getIcon());
-    Logger.getShared().recordEvent (LogEvent.NORMAL, String.valueOf(purged) 
-        + " " + plural + " purged",
-        false);
-    statusBar.setStatus(String.valueOf(purged) + " Notes purged");
   } // end of method purge
   
   /**
@@ -2232,7 +2321,7 @@ public class NotenikMainFrame
     
     if (ok) {
       syncFolder = new File (syncFolderString);
-      if (FileUtils.isGoodInputDirectory(syncFolder)) {
+      if (goodCollection(syncFolder)) {
       } else {
         Trouble.getShared().report(
             this, 
@@ -2606,8 +2695,6 @@ public class NotenikMainFrame
   */
   private void closeFile() {
     if (this.noteFile != null) {
-      modIfChanged();
-      // checkForUnsavedChanges();
       publishWindow.closeSource();
       if (currentFileSpec != null) {
         currentFileSpec.setNoteSortParm(noteSortParm.getParm());
@@ -2618,9 +2705,8 @@ public class NotenikMainFrame
 
   private void saveFile () {
     savePreferredCollectionView();
-    modIfChanged();
     if (noteFile == null) {
-      saveFileAs();
+      userSaveFileAs();
     } else {
       try {
         noteIO.save (noteList);
@@ -2678,26 +2764,50 @@ public class NotenikMainFrame
   /**
    Save the current collection to a location specified by the user.
    */
-  private void saveFileAs () {
-    fileChooser.setDialogTitle ("Save Notes to File");
-    fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-    if (FileUtils.isGoodInputDirectory(currentDirectory)) {
-      fileChooser.setCurrentDirectory (currentDirectory);
-      fileChooser.setSelectedFile (currentDirectory);
-    }
-    File selectedFile = fileChooser.showSaveDialog (this);
-    if(selectedFile != null) {
-      File chosenFile = selectedFile;
-      saveFileAs(chosenFile);
+  private void userSaveFileAs () {
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      fileChooser.setDialogTitle ("Save Notes to File");
+      fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+      if (FileUtils.isGoodInputDirectory(currentDirectory)) {
+        fileChooser.setCurrentDirectory (currentDirectory);
+        fileChooser.setSelectedFile (currentDirectory);
+      }
+      File selectedFile = fileChooser.showSaveDialog (this);
+      if(goodCollection(selectedFile)) {
+        File chosenFile = selectedFile;
+        saveFileAs(chosenFile);
+      }
     }
   }
   
-  public void newFile() {
-    closeFile();
-    initCollection();
-    buildNoteTabs();
- 
-    fileChooser.setDialogTitle ("Select Folder for New Note Collection");
+  /**
+   Allow the user to create a new collection.
+  */
+  public void userNewFile() {
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      fileChooser.setDialogTitle ("Select Folder for New Note Collection");
+      fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+      if (FileUtils.isGoodInputDirectory(currentDirectory)) {
+        fileChooser.setCurrentDirectory (currentDirectory);
+        fileChooser.setSelectedFile (currentDirectory);
+      }
+      File selectedFile = fileChooser.showSaveDialog (this);
+      if (selectedFile != null) {
+        if (goodCollection(selectedFile)) {
+          closeFile();
+          openFile(selectedFile, "", true);
+        } else {
+          trouble.report ("Trouble opening new file " + selectedFile.toString(),
+              "New File Open Error");
+        }
+      } // end if user selected a file
+    } // end if mods ok
+  } // end method userNewFile
+  
+  private void createMasterCollection() {
+    fileChooser.setDialogTitle ("Create Master Collection");
     fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
     if (FileUtils.isGoodInputDirectory(currentDirectory)) {
       fileChooser.setCurrentDirectory (currentDirectory);
@@ -2705,14 +2815,35 @@ public class NotenikMainFrame
     }
     File selectedFile = fileChooser.showSaveDialog (this);
     if(selectedFile != null) {
-      File chosenFile = selectedFile;
-      saveFileAs(chosenFile);
-      noteList.fireTableDataChanged();
-      // setNoteFile (null);
-      // setPreferredCollectionView();
-      // newNote();
-      addFirstNote();
-    }
+      int filesSaved = masterCollection.createMasterCollection(selectedFile);
+      if (filesSaved > 0) {
+        JOptionPane.showMessageDialog(this,
+            String.valueOf(filesSaved) + " Recent Files successfully saved to "
+                + GlobalConstants.LINE_FEED
+                + selectedFile.toString(),
+            "Master Collection Creation Results",
+            JOptionPane.INFORMATION_MESSAGE,
+            Home.getShared().getIcon());
+        createMasterCollectionMenuItem.setEnabled(false);
+        openMasterCollectionMenuItem.setEnabled(true);
+      } // End if we saved any recent files
+    } // End if user selected a file
+  } // end method createMasterCollection
+  
+  private void openMasterCollection() {
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      if (masterCollection.hasMasterCollection()) {
+        File selectedFile = masterCollection.getMasterCollectionFolder();
+        if (goodCollection(selectedFile)) {
+          closeFile();
+          openFile (selectedFile, "", true);
+        } else {
+          trouble.report ("Trouble opening file " + selectedFile.toString(),
+              "File Open Error");
+        }
+      } // end if we have a master collection
+    } // end if mod ok
   }
   
   /**
@@ -2800,7 +2931,7 @@ public class NotenikMainFrame
         noteList.setSource (file);
         noteList.setTitle(noteList.getSource().getName());
       }
-      currentFileSpec = recentFiles.addRecentFile (file);
+      currentFileSpec = masterCollection.addRecentFile (file);
       currentDirectory = file;
       userPrefs.setPref (FavoritesPrefs.LAST_FILE, file.toString());
       FileName fileName = new FileName (file);
@@ -3023,7 +3154,7 @@ public class NotenikMainFrame
       if (selectedFile != null) {
         File backupFile = selectedFile;
         backedUp = backup (backupFile);
-        FileSpec fileSpec = recentFiles.get(0);
+        FileSpec fileSpec = masterCollection.getFileSpec(0);
         fileSpec.setBackupFolder(backupFile);
         if (backedUp) {
           JOptionPane.showMessageDialog(this,
@@ -3074,9 +3205,9 @@ public class NotenikMainFrame
     backupFolder.mkdir();
     boolean backedUp = FileUtils.copyFolder (noteFile, backupFolder);
     if (backedUp) {
-      FileSpec fileSpec = recentFiles.get(0);
+      FileSpec fileSpec = masterCollection.getFileSpec(0);
       filePrefs.saveLastBackupDate
-          (fileSpec, recentFiles.getPrefsQualifier(), 0);
+          (fileSpec, masterCollection.getPrefsQualifier(), 0);
       logger.recordEvent (LogEvent.NORMAL,
           "Notes backed up to " + backupFolder.toString(),
             false);
@@ -3098,7 +3229,7 @@ public class NotenikMainFrame
   private File getBackupFolder() {
     File backupFolder = home.getUserHome();
     if (noteFile != null && noteFile.exists()) {    
-      FileSpec fileSpec = recentFiles.get(0);
+      FileSpec fileSpec = masterCollection.getFileSpec(0);
       String backupFolderStr = fileSpec.getBackupFolder();
       File defaultBackupFolder = new File (fileSpec.getFolder(), "backups");
       if (backupFolderStr == null
@@ -3650,6 +3781,9 @@ public class NotenikMainFrame
     fileSaveAsMenuItem = new javax.swing.JMenuItem();
     reloadMenuItem = new javax.swing.JMenuItem();
     reloadTaggedMenuItem = new javax.swing.JMenuItem();
+    jSeparator12 = new javax.swing.JPopupMenu.Separator();
+    createMasterCollectionMenuItem = new javax.swing.JMenuItem();
+    openMasterCollectionMenuItem = new javax.swing.JMenuItem();
     jSeparator1 = new javax.swing.JSeparator();
     publishWindowMenuItem = new javax.swing.JMenuItem();
     publishNowMenuItem = new javax.swing.JMenuItem();
@@ -4039,6 +4173,24 @@ public class NotenikMainFrame
       }
     });
     fileMenu.add(reloadTaggedMenuItem);
+    fileMenu.add(jSeparator12);
+
+    createMasterCollectionMenuItem.setText("Create Master Collection...");
+    createMasterCollectionMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        createMasterCollectionMenuItemActionPerformed(evt);
+      }
+    });
+    fileMenu.add(createMasterCollectionMenuItem);
+
+    openMasterCollectionMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_M, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+    openMasterCollectionMenuItem.setText("Open Master Collection");
+    openMasterCollectionMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        openMasterCollectionMenuItemActionPerformed(evt);
+      }
+    });
+    fileMenu.add(openMasterCollectionMenuItem);
     fileMenu.add(jSeparator1);
 
     publishWindowMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -4406,11 +4558,15 @@ replaceMenuItem.addActionListener(new java.awt.event.ActionListener() {
   }// </editor-fold>//GEN-END:initComponents
 
 private void launchButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_launchButtonActionPerformed
-  openURL (linkText.getText());
+  if (editingMasterCollection) {
+    openFileFromCurrentNote();
+  } else {
+    openURL (linkText.getText());
+  }
 }//GEN-LAST:event_launchButtonActionPerformed
 
 private void fileNewMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileNewMenuItemActionPerformed
-  newFile();
+  userNewFile();
 }//GEN-LAST:event_fileNewMenuItemActionPerformed
 
 private void urlNewButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_urlNewButtonActionPerformed
@@ -4438,7 +4594,7 @@ private void urlLastButtonAction(java.awt.event.ActionEvent evt) {//GEN-FIRST:ev
 }//GEN-LAST:event_urlLastButtonAction
 
 private void fileSaveAsMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileSaveAsMenuItemActionPerformed
-  saveFileAs ();
+  userSaveFileAs ();
 }//GEN-LAST:event_fileSaveAsMenuItemActionPerformed
 
 private void fileSaveMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileSaveMenuItemActionPerformed
@@ -4447,7 +4603,7 @@ private void fileSaveMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//
 }//GEN-LAST:event_fileSaveMenuItemActionPerformed
 
 private void openMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openMenuItemActionPerformed
-  openFile();
+  userOpenFile();
 }//GEN-LAST:event_openMenuItemActionPerformed
 
 private void importNotenikMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_importNotenikMenuItemActionPerformed
@@ -4681,6 +4837,14 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     collapseAllTags();
   }//GEN-LAST:event_collapseAllButtonActionPerformed
 
+  private void createMasterCollectionMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createMasterCollectionMenuItemActionPerformed
+    createMasterCollection();
+  }//GEN-LAST:event_createMasterCollectionMenuItemActionPerformed
+
+  private void openMasterCollectionMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openMasterCollectionMenuItemActionPerformed
+    openMasterCollection();
+  }//GEN-LAST:event_openMasterCollectionMenuItemActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -4691,6 +4855,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JMenuItem collectionPrefsMenuItem;
   private javax.swing.JTabbedPane collectionTabbedPane;
   private javax.swing.JMenuItem copyNoteMenuItem;
+  private javax.swing.JMenuItem createMasterCollectionMenuItem;
   private javax.swing.JMenuItem deleteMenuItem;
   private javax.swing.JMenuItem deleteNoteMenuItem;
   private javax.swing.JMenu editMenu;
@@ -4727,6 +4892,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JSeparator jSeparator1;
   private javax.swing.JPopupMenu.Separator jSeparator10;
   private javax.swing.JPopupMenu.Separator jSeparator11;
+  private javax.swing.JPopupMenu.Separator jSeparator12;
   private javax.swing.JPopupMenu.Separator jSeparator2;
   private javax.swing.JSeparator jSeparator3;
   private javax.swing.JSeparator jSeparator4;
@@ -4748,6 +4914,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JTree noteTree;
   private javax.swing.JButton okButton;
   private javax.swing.JMenuItem openHelpNotesMenuItem;
+  private javax.swing.JMenuItem openMasterCollectionMenuItem;
   private javax.swing.JMenuItem openMenuItem;
   private javax.swing.JMenuItem openNoteMenuItem;
   private javax.swing.JMenu openRecentMenu;
