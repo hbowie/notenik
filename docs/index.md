@@ -8,7 +8,7 @@
 
 Let me introduce you to [Notenik](http://notenik.net), a simple but powerful system for taking, collecting and referencing notes.
 
-This introduction describes Notenik [Version 2.80](http://www.powersurgepub.com/products/notenik/versions.html).
+This introduction describes Notenik [Version 2.90](http://www.powersurgepub.com/products/notenik/versions.html).
 
 <h2 id="table-of-contents">Table of Contents</h2>
 
@@ -111,7 +111,13 @@ This introduction describes Notenik [Version 2.80](http://www.powersurgepub.com/
       <a href="#sync-multiple-collections-to-a-common-folder">Sync Multiple Collections to a Common Folder</a>
     </li>
     <li>
+      <a href="#keeping-track-of-your-collections">Keeping Track of Your Collections</a>
+    </li>
+    <li>
       <a href="#view-the-log">View the Log</a>
+    </li>
+    <li>
+      <a href="#keyboard-shortcuts">Keyboard Shortcuts</a>
     </li>
     <li>
       <a href="#rights">Rights</a>
@@ -145,6 +151,8 @@ I'll start off by explaining my primary motivations behind the creation of Noten
 7. I want to be able to organize my notes in a variety of useful ways.
 
 8. I want to be able to usefully extend this basic idea of a note in as many ways as possible, while still remaining true to all of my motivations above.
+
+9. I want a simple, sturdy user interface that I can apply to as much stuff as possible.
 
 I'm sharing these motivations upfront because, if these same ideas appeal to you, then there's a good chance it will be worth your while to read a bit further. On the other hand, if you have different sorts of interests, then it's probably best to just stop now and move on.
 
@@ -222,11 +230,13 @@ Use the Text Edit Note command on the Note menu to open the currently displayed 
 
 Each Note is part of a Collection, and each Collection is stored in its own folder (aka directory). Each Note within a Collection must have its own unique Title.
 
-You can organize your Notes into as many Collections as you would like, and store each one whever you would like.
+You can organize your Notes into as many Collections as you would like, and store each one wherever you would like.
 
 The Notenik application can only open one Collection at a time, but you can easily switch from one to another using the Open Recent command on the File menu.
 
 You can adjust the number of Recent Files to retain using the File Tab in the Notenik preferences. This is also the place where you can specify whether you would like Notenik to open the most recently used Collection used when it starts up, or always open one specific Collection.
+
+You can also use the File Tab in the Notenik preferences to select a Collection you'd like to identify as your Essential Collection -- whichever Collection you wish to designate as primary, or most frequently used. You can then use a special command on the File menu -- or its keyboard shortcut -- to quickly open that Essential Collection.
 
 You might want to use the New command on the File menu to create your first Collection now, if you don't already have one created.
 
@@ -338,6 +348,14 @@ Look under the Collection menu for an option to Validate Links. Notenik will che
 
 
 By default, Notenik shows only four Fields for a Note: Title, Link, Tags and Body. However, this default may be altered by placing a file named 'template.txt' or 'template.md' within a Collection's folder. Such a file should be in the normal Notenik format, although the Field Labels specified need not have any accompanying values. When such a template file is found, the field names found in this file will be used as the fields to be displayed and maintained for that Collection, overriding the default four.
+
+If you are using a field other than one of the Notenik standard fields described elsewhere in this document, then you may specify the type of field desired by placing a special value within a pair of less-than greater-than signs, following the field name and the delimiting colon.
+
+Here are the currently recognized values:
+
+	<3> - A long text field, with multiple lines for data entry.
+	<builder> - A long text field, with multiple lines for data entry.
+	<longtext> - A long text field, with multiple lines for data entry.
 
 You may use the Generate Template command on the File menu to create a template file. You can then use any text editor to modify the sample template file to reflect the fields you desire for that Collection.
 
@@ -662,6 +680,38 @@ The sweep sync includes the following logic.
 
 Once folder sync has been turned on for a collection, then every time that Notenik makes an update to any note within that collection, a parallel update will be made to the corresponding note within the common folder.
 
+<h2 id="keeping-track-of-your-collections">Keeping Track of Your Collections</h2>
+
+
+If you keep all your Notes in a single Collection, then you will never need to worry about which notes are where.
+If you have multiple Collections of Notes, though, then you will probably want some way of keeping track of all of them.
+
+Notenik automatically keeps track of Collections you have recently opened, and you can always see this list, and select a Collection to open, by using the Open Recent command under the File menu.
+
+Note that this list is presented with the most recently opened Collections at the top, and then proceeding downwards to those accessed less recently.
+
+Collections will drop off of this list for two reasons, and you can control both of these on the Files tab within Notenik's Preferences.
+
+First, you can set the maximum number of recent files to keep on this list. As you access new Collections, ones accessed the longest time ago will drop off the end of the list. If you set this number high enough, though, then Collections will never "age out" and all of your Collections will remain on the list.
+
+Second, you can specify when to Purge inaccessible files. Doing this at startup is a good option. This way, if you decide to delete or rename a Collection of notes outside of Notenik, then that old Collection will drop off the list and you won't have to worry about accidentally selecting it. (You might *not* want to use this option, however, if you keep any of your Collections on a drive that's not always available, since these will then fall off the list if the drive is not mounted when you launch Notenik.)
+
+If you find Notenik really useful, and continue creating more Collections, then at some point you may wish to create a Master Collection.
+
+In a Master Collection, each Note tracks one of your other Collections.
+
+You start by executing the Create Master Collection command on the File menu. You will then need to pick a folder in which to store your Master Collection. Notenik will then populate this folder with one Note for each Collection listed on the Open Recent menu.
+
+Once you have created a Master Collection, then the Open Master Collection command under the File menu becomes available. Use this command to open your Master Collection.
+
+Now there are several features available to help you manage your Collection of Collections.
+
+The Link field for each Note in the Master Collection contains a link to the folder for that Collection. When working with the Master Collection, the Launch button becomes an Open button. Click on the Open button to open the selected Collection.
+
+The Title field for each Collection is initially formed from the words found in the name of the folder for the collection (as well as some of its parent folders, if there is room). This is the same field used to identify each Collection in the Open Recent menu. Modify the Title of a Collection here, and henceforth that shall be the way that Collection is identified on the Open Recent menu.
+
+If you'd like Notenik to forget about a Collection, then you can delete it from the Master Collection, and that will be the last you will see of it.
+
 <h2 id="view-the-log">View the Log</h2>
 
 
@@ -670,6 +720,40 @@ On the Window Menu, you'll find an entry for the Log window.
 You'll also briefly see the Log window when you first launch Notenik.
 
 You can usually ignore the Log, but if Notenik is not behaving as you think it should, a look at the Log window can sometimes help determine what is going on.
+
+<h2 id="keyboard-shortcuts">Keyboard Shortcuts</h2>
+
+
+Following are the keyboard shortcuts available within the app. Tap the appropriate modifier key for your computer (CMD for a Mac), and then combine with a letter, number or symbol indicated below.
+
+* B - Backup
+* C - Copy
+* E - Open Essential Collection
+* F - Find
+* G - Get File Info
+* H - Hide Notenik
+* K - Close Note
+* L - Link Tweaker
+* M - Open Master Collection
+* N - New Note
+* O - Open
+* P - Publish
+* Q - Quit Notenik
+* R - Replace
+* S - Save
+* T - Text Edit Note
+* V - Paste
+* W - Reduce Window Size
+* X - Cut
+* 1 - Sort by Title
+* 2 - Sort by Seq + Title
+* 3 - Sort Tasks by Date
+* 4 - Sort Tasks by Seq
+* , - Notenik Preferences
+* [ - Prior Note
+* ]  - Next Note
+* Esc - Escape Edit
+* Del - Delete Note
 
 <h2 id="rights">Rights</h2>
 

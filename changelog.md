@@ -1,4 +1,32 @@
 
+## Version 2.90 (25 May 2017)
+
+1. **Allow User to Quickly Open one Essential Collection**
+
+	You can specify this Essential Collection in the File Preferences, and then quickly open it from the File menu, or via a handy keyboard shortcut. 
+
+
+2. **Added a README file**
+
+	Notenik will now generate a README file in each Collection to make sure that someone viewing the folder outside of Notenik will realize that the folder contains notes used by Notenik. 
+
+
+3. **Added a Way to Specify a Field Type**
+
+	Within a template file, within the data portion of a line, the user may now enclose a special value inside of a pair of less-than greater-than signs to indicate the field type desired, if this is not already discernible from the field name. 
+
+
+4. **Added an Option for a Master Collection**
+
+	Users can now create a Master Collection, to keep track of all of their other collections. 
+
+
+5. **Fixed Field Display Bug**
+
+	Fixed a bug that would cause field values to show up next to the wrong labels, both on the Display tab and on the Edit tab. 
+
+
+
 ## Version 2.80 (2017-05-06)
 
 1. **Increased Maximum Number of Recent Files to 50**

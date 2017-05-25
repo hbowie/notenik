@@ -2884,6 +2884,22 @@ public class NotenikMainFrame
     } // end if mod ok
   }
   
+  public void openEssentialCollection() {
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      if (filePrefs.hasEssentialFilePath()) {
+        File selectedFile = new File(filePrefs.getEssentialFilePath());
+        if (goodCollection(selectedFile)) {
+          closeFile();
+          openFile (selectedFile, "", true);
+        } else {
+          trouble.report ("Trouble opening file " + selectedFile.toString(),
+              "File Open Error");
+        }
+      } // end if we have an essential file path
+    } // end if mod ok
+  }
+  
   /**
    Generate a template file containing all supported note fields. 
   */
@@ -3816,7 +3832,9 @@ public class NotenikMainFrame
     generateTemplateMenuItem = new javax.swing.JMenuItem();
     openMenuItem = new javax.swing.JMenuItem();
     openRecentMenu = new javax.swing.JMenu();
+    openEssentialMenuItem = new javax.swing.JMenuItem();
     openHelpNotesMenuItem = new javax.swing.JMenuItem();
+    openMasterCollectionMenuItem = new javax.swing.JMenuItem();
     fileSaveMenuItem = new javax.swing.JMenuItem();
     saveAllMenuItem = new javax.swing.JMenuItem();
     fileSaveAsMenuItem = new javax.swing.JMenuItem();
@@ -3824,7 +3842,6 @@ public class NotenikMainFrame
     reloadTaggedMenuItem = new javax.swing.JMenuItem();
     jSeparator12 = new javax.swing.JPopupMenu.Separator();
     createMasterCollectionMenuItem = new javax.swing.JMenuItem();
-    openMasterCollectionMenuItem = new javax.swing.JMenuItem();
     jSeparator1 = new javax.swing.JSeparator();
     publishWindowMenuItem = new javax.swing.JMenuItem();
     publishNowMenuItem = new javax.swing.JMenuItem();
@@ -4166,6 +4183,15 @@ public class NotenikMainFrame
     openRecentMenu.setText("Open Recent");
     fileMenu.add(openRecentMenu);
 
+    openEssentialMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_E, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+    openEssentialMenuItem.setText("Open Essential Collection");
+    openEssentialMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        openEssentialMenuItemActionPerformed(evt);
+      }
+    });
+    fileMenu.add(openEssentialMenuItem);
+
     openHelpNotesMenuItem.setText("Open Help Notes");
     openHelpNotesMenuItem.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -4173,6 +4199,15 @@ public class NotenikMainFrame
       }
     });
     fileMenu.add(openHelpNotesMenuItem);
+
+    openMasterCollectionMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_M, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+    openMasterCollectionMenuItem.setText("Open Master Collection");
+    openMasterCollectionMenuItem.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        openMasterCollectionMenuItemActionPerformed(evt);
+      }
+    });
+    fileMenu.add(openMasterCollectionMenuItem);
 
     fileSaveMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
     fileSaveMenuItem.setText("Save");
@@ -4223,15 +4258,6 @@ public class NotenikMainFrame
       }
     });
     fileMenu.add(createMasterCollectionMenuItem);
-
-    openMasterCollectionMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_M, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
-    openMasterCollectionMenuItem.setText("Open Master Collection");
-    openMasterCollectionMenuItem.addActionListener(new java.awt.event.ActionListener() {
-      public void actionPerformed(java.awt.event.ActionEvent evt) {
-        openMasterCollectionMenuItemActionPerformed(evt);
-      }
-    });
-    fileMenu.add(openMasterCollectionMenuItem);
     fileMenu.add(jSeparator1);
 
     publishWindowMenuItem.setAccelerator(KeyStroke.getKeyStroke (KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -4890,6 +4916,10 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
     openMasterCollection();
   }//GEN-LAST:event_openMasterCollectionMenuItemActionPerformed
 
+  private void openEssentialMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openEssentialMenuItemActionPerformed
+    openEssentialCollection();
+  }//GEN-LAST:event_openEssentialMenuItemActionPerformed
+
 
 
   // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -4958,6 +4988,7 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
   private javax.swing.JTable noteTable;
   private javax.swing.JTree noteTree;
   private javax.swing.JButton okButton;
+  private javax.swing.JMenuItem openEssentialMenuItem;
   private javax.swing.JMenuItem openHelpNotesMenuItem;
   private javax.swing.JMenuItem openMasterCollectionMenuItem;
   private javax.swing.JMenuItem openMenuItem;
