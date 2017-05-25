@@ -438,7 +438,7 @@ public class NotenikMainFrame
   /**
    Prepare the data entry screen for a new Note.
    */
-  public void newNote() {
+  private void newNote() {
 
     // Capture current category selection, if any
     String selectedTags = "";
@@ -499,8 +499,8 @@ public class NotenikMainFrame
     position.setIndex (noteList.size());
 
     Note note = position.getNote();
-    note.setTitle("PowerSurge Publishing");
-    note.setLink("http://www.powersurgepub.com/");
+    note.setTitle("Notenik.net");
+    note.setLink("http://www.notenik.net/");
     note.setTags("Software.Java.Groovy");
     note.setBody("Home to Notenik");
 
@@ -605,15 +605,18 @@ public class NotenikMainFrame
   } // end method removeNote
 
   private void checkTags() {
-    modIfChanged();
-    TagsChangeScreen replaceScreen = new TagsChangeScreen
-        (this, true, noteList.getTagsList(), this);
-    replaceScreen.setLocation (
-        this.getX() + CHILD_WINDOW_X_OFFSET,
-        this.getY() + CHILD_WINDOW_Y_OFFSET);
-    replaceScreen.setVisible (true);
-    // setUnsavedChanges (true);
-    // catScreen.show();
+    boolean modOK = modIfChanged();
+
+    if (modOK) {
+      TagsChangeScreen replaceScreen = new TagsChangeScreen
+          (this, true, noteList.getTagsList(), this);
+      replaceScreen.setLocation (
+          this.getX() + CHILD_WINDOW_X_OFFSET,
+          this.getY() + CHILD_WINDOW_Y_OFFSET);
+      replaceScreen.setVisible (true);
+      // setUnsavedChanges (true);
+      // catScreen.show();
+    }
   }
 
   /**
@@ -623,50 +626,59 @@ public class NotenikMainFrame
    */
   public void changeAllTags (String from, String to) {
 
-    modIfChanged();
-    NotePositioned workNote = new NotePositioned (noteIO.getRecDef());
-    int mods = 0;
-    for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
-      workNote.setNote (noteList.get (workIndex));
-      workNote.setIndex (workIndex);
-      String before = workNote.getNote().getTags().toString();
-      workNote.getNote().getTags().replace (from, to);
-      if (! before.equals (workNote.getNote().getTags().toString())) {
-        mods++;
-        noteList.modify(workNote);
-        saveNote(workNote.getNote());
-      }
-    }
+    boolean modOK = modIfChanged();
 
-    JOptionPane.showMessageDialog(this,
-      String.valueOf (mods)
-          + " tags changed",
-      "Tags Replacement Results",
-      JOptionPane.INFORMATION_MESSAGE);
-    displayNote();
+    if (modOK) {
+      NotePositioned workNote = new NotePositioned (noteIO.getRecDef());
+      int mods = 0;
+      for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
+        workNote.setNote (noteList.get (workIndex));
+        workNote.setIndex (workIndex);
+        String before = workNote.getNote().getTags().toString();
+        workNote.getNote().getTags().replace (from, to);
+        if (! before.equals (workNote.getNote().getTags().toString())) {
+          mods++;
+          noteList.modify(workNote);
+          saveNote(workNote.getNote());
+        }
+      }
+
+      JOptionPane.showMessageDialog(this,
+        String.valueOf (mods)
+            + " tags changed",
+        "Tags Replacement Results",
+        JOptionPane.INFORMATION_MESSAGE);
+      displayNote();
+    }
   }
 
   private void flattenTags() {
-    modIfChanged();
-    NotePositioned workNote = new NotePositioned(noteIO.getRecDef());
-    for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
-      workNote.setNote (noteList.get (workIndex));
-      workNote.getNote().flattenTags();
-      noteList.modify(workNote);
+    boolean modOK = modIfChanged();
+
+    if (modOK) {
+      NotePositioned workNote = new NotePositioned(noteIO.getRecDef());
+      for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
+        workNote.setNote (noteList.get (workIndex));
+        workNote.getNote().flattenTags();
+        noteList.modify(workNote);
+      }
+      noFindInProgress();
+      displayNote();
     }
-    noFindInProgress();
-    displayNote();
   }
 
   private void lowerCaseTags() {
-    modIfChanged();
-    NotePositioned workNote = new NotePositioned(noteIO.getRecDef());
-    for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
-      workNote.setNote (noteList.get (workIndex));
-      workNote.getNote().lowerCaseTags();
-      noteList.modify(workNote);
+    boolean modOK = modIfChanged();
+
+    if (modOK) {
+      NotePositioned workNote = new NotePositioned(noteIO.getRecDef());
+      for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
+        workNote.setNote (noteList.get (workIndex));
+        workNote.getNote().lowerCaseTags();
+        noteList.modify(workNote);
+      }
+      noFindInProgress();
     }
-    noFindInProgress();
   }
 
   public int checkTags (String find, String replace) {
@@ -844,56 +856,57 @@ public class NotenikMainFrame
       boolean caseSensitive,
       boolean showDialogAtEnd) {
         
-    modIfChanged();
+    boolean modOK = modIfChanged();
     boolean found = false;
-
-    String notFoundMessage;
-    if (findString != null && findString.length() > 0) {
-      if (findButtonText.equals (FIND)) {
-        notFoundMessage = "No Notes Found";
-        position.setIndex (-1);
-      } else {
-        notFoundMessage = "No further Notes Found";
-      }
-      position.incrementIndex (1);
-      String findLower = findString.toLowerCase();
-      String findUpper = findString.toUpperCase();
-      while (position.hasValidIndex(noteList) && (! found)) {
-        Note noteCheck = noteList.get (position.getIndex());
-        found = findWithinNote(
-            noteCheck,
-            findString, 
-            checkTitle, 
-            checkLink, 
-            checkTags,
-            checkBody,
-            caseSensitive,
-            findLower,
-            findUpper);
-        if (found) {
-          foundNote = noteCheck;
+    if (modOK) {
+      String notFoundMessage;
+      if (findString != null && findString.length() > 0) {
+        if (findButtonText.equals (FIND)) {
+          notFoundMessage = "No Notes Found";
+          position.setIndex (-1);
         } else {
-          position.incrementIndex (1);
+          notFoundMessage = "No further Notes Found";
         }
-      } // while still looking for next match
-      if (found) {
-        findInProgress();
-        lastTextFound = findString;
-        position = noteList.positionUsingListIndex (position.getIndex());
-        positionAndDisplay();
-        statusBar.setStatus("Matching Note found");
-      } else {
-        JOptionPane.showMessageDialog(this,
-            notFoundMessage,
-            "Not Found",
-            JOptionPane.WARNING_MESSAGE,
-            Home.getShared().getIcon());
-        noFindInProgress();
-        lastTextFound = "";
-        statusBar.setStatus(notFoundMessage);
-        foundNote = null;
-      }
-    } // end if we've got a find string
+        position.incrementIndex (1);
+        String findLower = findString.toLowerCase();
+        String findUpper = findString.toUpperCase();
+        while (position.hasValidIndex(noteList) && (! found)) {
+          Note noteCheck = noteList.get (position.getIndex());
+          found = findWithinNote(
+              noteCheck,
+              findString, 
+              checkTitle, 
+              checkLink, 
+              checkTags,
+              checkBody,
+              caseSensitive,
+              findLower,
+              findUpper);
+          if (found) {
+            foundNote = noteCheck;
+          } else {
+            position.incrementIndex (1);
+          }
+        } // while still looking for next match
+        if (found) {
+          findInProgress();
+          lastTextFound = findString;
+          position = noteList.positionUsingListIndex (position.getIndex());
+          positionAndDisplay();
+          statusBar.setStatus("Matching Note found");
+        } else {
+          JOptionPane.showMessageDialog(this,
+              notFoundMessage,
+              "Not Found",
+              JOptionPane.WARNING_MESSAGE,
+              Home.getShared().getIcon());
+          noFindInProgress();
+          lastTextFound = "";
+          statusBar.setStatus(notFoundMessage);
+          foundNote = null;
+        }
+      } // end if we've got a find string
+    } // end if mods ok
     return found;
   } // end method findNote
   
@@ -1061,35 +1074,43 @@ public class NotenikMainFrame
   }
 
   public void firstNote () {
-    modIfChanged();
-    noFindInProgress();
-    position.setNavigatorToList (collectionTabbedPane.getSelectedIndex() == 0);
-    position = noteList.first (position);
-    positionAndDisplay();
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      noFindInProgress();
+      position.setNavigatorToList (collectionTabbedPane.getSelectedIndex() == 0);
+      position = noteList.first (position);
+      positionAndDisplay();
+    }
   }
 
   public void priorNote () {
-    modIfChanged();
-    noFindInProgress();
-    position.setNavigatorToList (collectionTabbedPane.getSelectedIndex() == 0);
-    position = noteList.prior (position);
-    positionAndDisplay();
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      noFindInProgress();
+      position.setNavigatorToList (collectionTabbedPane.getSelectedIndex() == 0);
+      position = noteList.prior (position);
+      positionAndDisplay();
+    }
   }
 
   public void nextNote() {
-    modIfChanged();
-    noFindInProgress();
-    position.setNavigatorToList (collectionTabbedPane.getSelectedIndex() == 0);
-    position = noteList.next (position);
-    positionAndDisplay();
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      noFindInProgress();
+      position.setNavigatorToList (collectionTabbedPane.getSelectedIndex() == 0);
+      position = noteList.next (position);
+      positionAndDisplay();
+    }
   }
 
   public void lastNote() {
-    modIfChanged();
-    noFindInProgress();
-    position.setNavigatorToList (collectionTabbedPane.getSelectedIndex() == 0);
-    position = noteList.last (position);
-    positionAndDisplay();
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      noFindInProgress();
+      position.setNavigatorToList (collectionTabbedPane.getSelectedIndex() == 0);
+      position = noteList.last (position);
+      positionAndDisplay();
+    }
   }
 
   private void positionAndDisplay () {
@@ -1117,9 +1138,11 @@ public class NotenikMainFrame
   private void selectTableRow () {
     int selectedRow = noteTable.getSelectedRow();
     if (selectedRow >= 0 && selectedRow < noteList.size()) {
-      modIfChanged();
-      position = noteList.positionUsingListIndex (selectedRow);
-      positionAndDisplay();
+      boolean modOK = modIfChanged();
+      if (modOK) {
+        position = noteList.positionUsingListIndex (selectedRow);
+        positionAndDisplay();
+      }
     }
   }
 
@@ -1142,15 +1165,17 @@ public class NotenikMainFrame
     }
     else
     if (node.getNodeType() == TagsNode.ITEM) {
-      modIfChanged();
-      Note branch = (Note)node.getTaggable();
-      int branchIndex = noteList.find (branch);
-      if (branchIndex >= 0) {
-        position = noteList.positionUsingListIndex (branchIndex);
-        position.setTagsNode (node);
-        positionAndDisplay();
-      } else {
-        System.out.println ("Selected a branch from the tree that couldn't be found in the list");
+      boolean modOK = modIfChanged();
+      if (modOK) {
+        Note branch = (Note)node.getTaggable();
+        int branchIndex = noteList.find (branch);
+        if (branchIndex >= 0) {
+          position = noteList.positionUsingListIndex (branchIndex);
+          position.setTagsNode (node);
+          positionAndDisplay();
+        } else {
+          System.out.println ("Selected a branch from the tree that couldn't be found in the list");
+        }
       }
     }
     else {
@@ -1359,9 +1384,11 @@ public class NotenikMainFrame
    */
   private void doneEditing() {
     if (position != null && displayTab != null) {
-      modIfChanged();
-      positionAndDisplay();
-      activateDisplayTab();
+      boolean modOK = modIfChanged();
+      if (modOK) {
+        positionAndDisplay();
+        activateDisplayTab();
+      }
     }
   } 
   
@@ -1608,11 +1635,13 @@ public class NotenikMainFrame
    Try to open the current newNote in the local app for the file type. 
   */
   private void openNote() {
-    boolean ok = modIfChanged();
+    boolean modOK = modIfChanged();
+    boolean ok = modOK;
     Note noteToOpen = null;
     File noteFileToOpen = null;
     String noteTitle = "** Unknown **";
     Desktop desktop = null;
+    
     if (position == null) {
       ok = false;
     }
@@ -1893,6 +1922,13 @@ public class NotenikMainFrame
       && fileToCheck.canWrite());
   }
 
+  /**
+   Open the specified collection and allow the user to view and edit it. 
+  
+   @param fileToOpen The folder containing the collection to be opened. 
+   @param titleToDisplay Any special title to be used for the collection. 
+   @param loadUnTagged Load notes without tags, or omit them? 
+  */
   private void openFile (
       File fileToOpen, 
       String titleToDisplay, 
@@ -1919,6 +1955,7 @@ public class NotenikMainFrame
     initCollection();
     
     setNoteFile (fileToOpen);
+    
     try {
       noteIO.load(noteList, loadUnTagged);
       if (folderSyncPrefs.getSync()) {
@@ -1927,8 +1964,9 @@ public class NotenikMainFrame
     } catch (IOException e) {
       ioException(e);
     }
-    addFirstNoteIfListEmpty();
     buildNoteTabs();
+    addFirstNoteIfListEmpty();
+    // buildNoteTabs();
     noteList.fireTableDataChanged();
     if (fileToOpen != null && noteList != null) {
       noteSortParm.setParm(currentFileSpec.getNoteSortParm());
@@ -3311,67 +3349,70 @@ public class NotenikMainFrame
    */
   public void validateURLs () {
 
-    modIfChanged();
+    boolean modOK = modIfChanged();
 
-    // Make sure user is ready to proceed
-    Object[] options = { "Continue", "Cancel" };
-    int userOption = JOptionPane.showOptionDialog(this,
-        "Please ensure your Internet connection is active",
-        "Validate Web Pages",
-        JOptionPane.DEFAULT_OPTION,
-        JOptionPane.WARNING_MESSAGE,
-        null, options, options[0]);
+    if (modOK) {
 
-    // If User is ready, then proceed
-    if (userOption == 0) {
+      // Make sure user is ready to proceed
+      Object[] options = { "Continue", "Cancel" };
+      int userOption = JOptionPane.showOptionDialog(this,
+          "Please ensure your Internet connection is active",
+          "Validate Web Pages",
+          JOptionPane.DEFAULT_OPTION,
+          JOptionPane.WARNING_MESSAGE,
+          null, options, options[0]);
 
-      // Prepare Auxiliary List to track invalid Notes
-      webPageGroup = new ThreadGroup("WebPage threads");
-      urlValidators = new ArrayList();
+      // If User is ready, then proceed
+      if (userOption == 0) {
 
-      // Go through sorted items looking for Web Pages
-      Note workNote;
-      String address;
-      URLValidator validator;
-      for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
-        workNote = noteList.get (workIndex);
-        address = workNote.getURLasString();
-        if (address.length() > 0) {
-          validator = new URLValidator (webPageGroup, workNote, workIndex, this);
-          urlValidators.add (validator);
+        // Prepare Auxiliary List to track invalid Notes
+        webPageGroup = new ThreadGroup("WebPage threads");
+        urlValidators = new ArrayList();
+
+        // Go through sorted items looking for Web Pages
+        Note workNote;
+        String address;
+        URLValidator validator;
+        for (int workIndex = 0; workIndex < noteList.size(); workIndex++) {
+          workNote = noteList.get (workIndex);
+          address = workNote.getURLasString();
+          if (address.length() > 0) {
+            validator = new URLValidator (webPageGroup, workNote, workIndex, this);
+            urlValidators.add (validator);
+          }
+        } // end of list
+
+        // Prepare dialog to show validation progress
+        progress = 0;
+        progressMax = urlValidators.size();
+        progressDialog = new ProgressMonitor (this,
+            "Validating "
+                + String.valueOf (progressMax)
+                + " Links...",
+            "                                                  ", // Status Note
+            0,              // lower bound of range
+            progressMax     // upper bound of range
+            );
+        progressDialog.setProgress(0);
+        progressDialog.setMillisToDecideToPopup(500);
+        progressDialog.setMillisToPopup(500);
+
+        // Now start threads to check Web pages
+        badPages = 0;
+        for (int i = 0; i < urlValidators.size(); i++) {
+          validator = (URLValidator)urlValidators.get(i);
+          validator.start();
+        } // end for each page being validated
+
+        // Start timer to give the user a chance to cancel
+        if (validateURLTimer == null) {
+          validateURLTimer = new javax.swing.Timer (ONE_SECOND, this);
+        } else {
+          validateURLTimer.setDelay (ONE_SECOND);
         }
-      } // end of list
-
-      // Prepare dialog to show validation progress
-      progress = 0;
-      progressMax = urlValidators.size();
-      progressDialog = new ProgressMonitor (this,
-          "Validating "
-              + String.valueOf (progressMax)
-              + " Links...",
-          "                                                  ", // Status Note
-          0,              // lower bound of range
-          progressMax     // upper bound of range
-          );
-      progressDialog.setProgress(0);
-      progressDialog.setMillisToDecideToPopup(500);
-      progressDialog.setMillisToPopup(500);
-
-      // Now start threads to check Web pages
-      badPages = 0;
-      for (int i = 0; i < urlValidators.size(); i++) {
-        validator = (URLValidator)urlValidators.get(i);
-        validator.start();
-      } // end for each page being validated
-
-      // Start timer to give the user a chance to cancel
-      if (validateURLTimer == null) {
-        validateURLTimer = new javax.swing.Timer (ONE_SECOND, this);
-      } else {
-        validateURLTimer.setDelay (ONE_SECOND);
-      }
-      validateURLTimer.start();
-    } // continue rather than cancel
+        validateURLTimer.start();
+      } // continue rather than cancel
+    }
   } // end validateURLs method
 
   /**
@@ -4598,8 +4639,10 @@ private void fileSaveAsMenuItemActionPerformed(java.awt.event.ActionEvent evt) {
 }//GEN-LAST:event_fileSaveAsMenuItemActionPerformed
 
 private void fileSaveMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileSaveMenuItemActionPerformed
-    modIfChanged();
-    positionAndDisplay();
+    boolean modOK = modIfChanged();
+    if (modOK) {
+      positionAndDisplay();
+    }
 }//GEN-LAST:event_fileSaveMenuItemActionPerformed
 
 private void openMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openMenuItemActionPerformed
@@ -4802,8 +4845,10 @@ private void publishWindowMenuItemActionPerformed(java.awt.event.ActionEvent evt
           && displayTab != null 
           && widgets != null 
           && (! widgets.isEmpty())) {
-        modIfChanged();
-        positionAndDisplay();
+        boolean modOK = modIfChanged();
+        if (modOK) {
+          positionAndDisplay();
+        }
       }
       okButton.setEnabled(false);
     } else {
