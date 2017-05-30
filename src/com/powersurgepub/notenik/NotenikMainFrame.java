@@ -68,7 +68,7 @@ public class NotenikMainFrame
       LinkTweakerApp {
 
   public static final String PROGRAM_NAME    = "Notenik";
-  public static final String PROGRAM_VERSION = "2.90";
+  public static final String PROGRAM_VERSION = "3.00";
 
   public static final int    CHILD_WINDOW_X_OFFSET = 60;
   public static final int    CHILD_WINDOW_Y_OFFSET = 60;
@@ -4672,7 +4672,11 @@ private void fileSaveMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//
 }//GEN-LAST:event_fileSaveMenuItemActionPerformed
 
 private void openMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_openMenuItemActionPerformed
-  userOpenFile();
+  if (editingMasterCollection) {
+    openFileFromCurrentNote();
+  } else {
+    userOpenFile();
+  }
 }//GEN-LAST:event_openMenuItemActionPerformed
 
 private void importNotenikMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_importNotenikMenuItemActionPerformed

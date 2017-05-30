@@ -8,7 +8,9 @@
 
 Let me introduce you to [Notenik](http://notenik.net), a simple but powerful system for taking, collecting and referencing notes.
 
-This introduction describes Notenik [Version 2.90](http://www.powersurgepub.com/products/notenik/versions.html).
+This introduction describes Notenik [Version 3.00](http://www.powersurgepub.com/products/notenik/versions.html).
+
+When you're ready, go ahead and download [Notenik macOS application version 3.00](http://www.notenik.net/Notenik-3.00.dmg).
 
 <h2 id="table-of-contents">Table of Contents</h2>
 
@@ -167,13 +169,13 @@ Notenik software is written in [Java](http://www.java.net) using the [Netbeans I
 
 Although the Notenik application can be run on other platforms, my preference is for the Mac, and so the instructions that follow will primarily focus on the Mac user interface. Users on other platforms should be able to easily adjust, where necessary, for their systems.
 
-You may receive various warnings that the software is written in Java and/or that the application code has not been signed. So long as you have downloaded the software from [Notenik.com](http://www.notenik.com) or [PowerSurgePub.com](http://www.powersurgepub.com) then you should be safe to ignore such warnings and proceed to happily use the software.
+Starting with version 3.00, you can expect the Mac application packaged as a disk image to be signed, which means that you should not see any macOS messages saying that the application is from an unidentified developer.
 
 If you see a message saying you need Java, then you can visit [Java.com](http://www.java.com) to download a recent version for most operating systems.
 
 If you'd like to learn more about Notenik, then it's probably best to download the application now and get it launched, so that you can follow along with the examples given below.
 
-* [Notenik Mac App](http://www.notenik.net/notenik.dmg)
+* [Notenik macOS application version 3.00](http://www.notenik.net/Notenik-3.00.dmg)
 * [PowerSurge Publishing Omni Pack](http://www.powersurgepub.com/downloads/pspub-omni-pack.zip)
 
 From this point on, I'll introduce one concept at a time.

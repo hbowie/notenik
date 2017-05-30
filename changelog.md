@@ -1,4 +1,12 @@
 
+## Version 3.00 (30 May 2017)
+
+1. **Mac Disk Image Now Signed by Developer**
+
+	Finally figured out a way to successfully sign the Mac app within the Disk Image as coming from me, an official, trusted Apple developer. So Mac users should no longer see the dreaded GateKeeper warning about Notenik being from an unknown source. 
+
+
+
 ## Version 2.90 (25 May 2017)
 
 1. **Allow User to Quickly Open one Essential Collection**
